@@ -146,6 +146,10 @@ tasks.register('ragEvaluation', Test) {
 // 将仓库根目录 .env 注入 bootRun，便于本地加载 AI_BAILIAN_API_KEY 等变量（Gradle 进程默认不读 .env）
 // 同时确保 JVM 使用 UTF-8 编码
 tasks.named('bootRun') {
+    // 将 Spring Boot 进程的 stdout/stderr 直接透传到终端，避免 Gradle 缓冲导致看不到运行时日志
+    standardOutput = System.out
+    errorOutput = System.err
+
     // JVM 编码配置（stdout/stderr：JDK 18+，避免控制台 PrintStream 与 Logback UTF-8 不一致）
     jvmArgs = [
             '-Dfile.encoding=UTF-8',

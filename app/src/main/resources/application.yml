@@ -27,7 +27,9 @@ springdoc:
 
 spring:
   config:
-    import: optional:classpath:voice-interview-opening.yml
+    import:
+      - optional:classpath:voice-interview-opening.yml
+      - optional:file:./.env[.properties]
   application:
     name: ai-interview-platform
 
@@ -96,7 +98,7 @@ spring:
 # Application custom configuration
 app:
   ai:
-    default-provider: dashscope
+    default-provider: deepseek
     default-embedding-provider: dashscope
     embedding-dimensions: ${APP_AI_EMBEDDING_DIMENSIONS:1024}
     security:
@@ -134,7 +136,7 @@ app:
       deepseek:
         base-url: https://api.deepseek.com
         api-key: ${PROVIDER_DEEPSEEK_API_KEY:}
-        model: ${PROVIDER_DEEPSEEK_MODEL:deepseek-v4-flash}
+        model: ${PROVIDER_DEEPSEEK_MODEL:deepseek-flash}
         supports-embedding: false
       # 智谱 AI / GLM（OpenAI 兼容） https://open.bigmodel.cn/
       glm:
@@ -164,7 +166,8 @@ app:
     # 是否开启结构化输出调用指标（invocations/attempts/latency）
     structured-metrics-enabled: ${APP_AI_STRUCTURED_METRICS_ENABLED:true}
     # 是否启用 Spring AI 2.0 entity schema validation retry（失败时仍受 structured-max-attempts 外层控制）
-    structured-schema-validation-enabled: ${APP_AI_STRUCTURED_SCHEMA_VALIDATION_ENABLED:true}
+    # DeepSeek 不支持 json_schema response_format，默认关闭，走本地 BeanOutputConverter 解析路径
+    structured-schema-validation-enabled: ${APP_AI_STRUCTURED_SCHEMA_VALIDATION_ENABLED:false}
     rag:
       # RAG 业务指标（app.rag.*）开关
       metrics-enabled: ${APP_AI_RAG_METRICS_ENABLED:true}

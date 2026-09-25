@@ -41,10 +41,8 @@ const PROVIDER_PRESETS: Record<string, {
   deepseek: {
     baseUrl: 'https://api.deepseek.com',
     models: [
-      { value: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash — 最新·快速' },
+      { value: 'deepseek-flash', label: 'DeepSeek Flash — 快速' },
       { value: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro — 最强推理' },
-      { value: 'deepseek-chat', label: 'DeepSeek V3.2 — 旧版对话（即将弃用）' },
-      { value: 'deepseek-reasoner', label: 'DeepSeek R1 — 旧版推理（即将弃用）' },
     ],
     supportsEmbedding: false,
   },

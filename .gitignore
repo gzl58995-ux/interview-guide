@@ -21,6 +21,7 @@ SETUP_API_KEYS.md
 # AI Assistant documentation
 CLAUDE.local.md
 GEMINI.md
+.codefree/
 
 # Playwright MCP
 .playwright-mcp/

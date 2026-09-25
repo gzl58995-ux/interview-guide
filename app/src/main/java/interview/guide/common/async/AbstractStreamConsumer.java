@@ -1,6 +1,7 @@
 package interview.guide.common.async;
 
 import interview.guide.common.constant.AsyncTaskStreamConstants;
+import interview.guide.common.exception.BusinessException;
 import interview.guide.common.log.ErrorLogSanitizer;
 import interview.guide.infrastructure.redis.RedisService;
 import jakarta.annotation.PostConstruct;
@@ -135,9 +136,7 @@ public abstract class AbstractStreamConsumer<T> {
             if (retryCount < AsyncTaskStreamConstants.MAX_RETRY_COUNT) {
                 retryMessage(payload, retryCount + 1);
             } else {
-                markFailed(payload, truncateError(
-                    taskDisplayName() + " failed after retry " + retryCount
-                ));
+                markFailed(payload, truncateError(buildFailureMessage(e, retryCount)));
             }
             ackMessage(messageId);
         }
@@ -159,6 +158,19 @@ public abstract class AbstractStreamConsumer<T> {
             return null;
         }
         return error.length() > 500 ? error.substring(0, 500) : error;
+    }
+
+    /**
+     * 构造展示给用户的失败原因。业务异常消息由代码编写，可安全透出；
+     * 其他异常只保留类型名，避免外部响应或用户输入回显。
+     */
+    private String buildFailureMessage(Exception error, int retryCount) {
+        String reason = error instanceof BusinessException businessException
+            && businessException.getMessage() != null
+            && !businessException.getMessage().isBlank()
+                ? businessException.getMessage()
+                : ErrorLogSanitizer.summarize(error);
+        return taskDisplayName() + "失败（已重试 " + retryCount + " 次）：" + reason;
     }
 
     private void ackMessage(StreamMessageId messageId) {

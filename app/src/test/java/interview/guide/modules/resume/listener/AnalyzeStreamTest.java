@@ -1,6 +1,7 @@
 package interview.guide.modules.resume.listener;
 
 import interview.guide.common.exception.BusinessException;
+import interview.guide.common.exception.ErrorCode;
 import interview.guide.common.transaction.TransactionalExecutor;
 import interview.guide.infrastructure.redis.RedisService;
 import interview.guide.modules.interview.model.ResumeAnalysisResponse;
@@ -19,6 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.stream.StreamMessageId;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -77,6 +80,14 @@ class AnalyzeStreamTest {
     AnalyzeStreamConsumer.AnalyzePayload payload = new AnalyzeStreamConsumer.AnalyzePayload(5L);
     payload.setAttemptId("attempt-1");
     return payload;
+  }
+
+  private void invokeProcessMessage(AnalyzeStreamConsumer consumer, Map<String, String> data)
+      throws Exception {
+    Method method = interview.guide.common.async.AbstractStreamConsumer.class
+        .getDeclaredMethod("processMessage", StreamMessageId.class, Map.class);
+    method.setAccessible(true);
+    method.invoke(consumer, new StreamMessageId(1, 0), new HashMap<>(data));
   }
 
   @Nested
@@ -174,6 +185,28 @@ class AnalyzeStreamTest {
       consumer.processBusiness(payload());
 
       verify(gradingService, never()).analyzeResume(anyString());
+    }
+
+    @Test
+    @DisplayName("AI 分析失败时标记 FAILED 并透出业务异常信息，不写入伪成功结果")
+    void shouldMarkFailedWithBusinessMessage() throws Exception {
+      when(resumeRepository.findById(5L))
+          .thenReturn(Optional.of(resume("数据库中的简历正文", "resume/5", "a.pdf")));
+      when(resumeRepository.tryMarkAnalyzeProcessing(
+          org.mockito.ArgumentMatchers.eq(5L), anyString(), any())).thenReturn(1);
+      when(gradingService.analyzeResume("数据库中的简历正文"))
+          .thenThrow(new BusinessException(ErrorCode.RESUME_ANALYSIS_FAILED, "AI 分析失败：请稍后重试"));
+
+      invokeProcessMessage(consumer, Map.of("resumeId", "5", "retryCount", "3"));
+
+      ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
+      verify(resumeRepository).failAnalyzeIfProcessing(
+          org.mockito.ArgumentMatchers.eq(5L), anyString(),
+          errorCaptor.capture(), any());
+      assertThat(errorCaptor.getValue())
+          .contains("简历分析失败")
+          .contains("AI 分析失败：请稍后重试");
+      verify(persistenceService, never()).saveAnalysisIfOwned(anyLong(), anyString(), any());
     }
 
     @Test

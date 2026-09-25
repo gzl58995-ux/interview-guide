@@ -2,9 +2,7 @@ package interview.guide.modules.resume.service;
 
 import interview.guide.common.ai.LlmProviderRegistry;
 import interview.guide.common.ai.StructuredOutputInvoker;
-import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
-import interview.guide.common.log.ErrorLogSanitizer;
 import interview.guide.modules.interview.model.ResumeAnalysisResponse;
 import interview.guide.modules.interview.model.ResumeAnalysisResponse.ScoreDetail;
 import interview.guide.modules.interview.model.ResumeAnalysisResponse.Suggestion;
@@ -87,51 +85,37 @@ public class ResumeGradingService {
      */
     public ResumeAnalysisResponse analyzeResume(String resumeText) {
         log.info("开始分析简历，文本长度: {} 字符", resumeText.length());
-        
-        try {
-            // 加载系统提示词
-            String systemPrompt = systemPromptTemplate.render();
-            
-            // 加载用户提示词并填充变量
-            Map<String, Object> variables = new HashMap<>();
-            variables.put("resumeText", resumeText);
-            String userPrompt = userPromptTemplate.render(variables);
-            
-            // 添加格式指令到系统提示词
-            String systemPromptWithFormat = systemPrompt + "\n\n" + outputConverter.getFormat();
-            
-            // 调用AI
-            ResumeAnalysisResponseDTO dto;
-            try {
-                ChatClient chatClient = llmProviderRegistry.getDefaultChatClient();
-                dto = structuredOutputInvoker.invoke(
-                    chatClient,
-                    systemPromptWithFormat,
-                    userPrompt,
-                    outputConverter,
-                    ErrorCode.RESUME_ANALYSIS_FAILED,
-                    "简历分析失败：",
-                    "简历分析",
-                    log
-                );
-                log.debug("AI响应解析成功: overallScore={}", dto.overallScore());
-            } catch (Exception e) {
-                log.error("简历分析AI调用失败: {}", ErrorLogSanitizer.summarize(e),
-                    ErrorLogSanitizer.forLogging(e));
-                throw new BusinessException(ErrorCode.RESUME_ANALYSIS_FAILED, "简历分析失败");
-            }
-            
-            // 转换为业务对象
-            ResumeAnalysisResponse result = convertToResponse(dto, resumeText);
-            log.info("简历分析完成，总分: {}", result.overallScore());
-            
-            return result;
-            
-        } catch (Exception e) {
-            log.error("简历分析失败: {}", ErrorLogSanitizer.summarize(e),
-                ErrorLogSanitizer.forLogging(e));
-            return createErrorResponse(resumeText, e.getClass().getSimpleName());
-        }
+
+        // 加载系统提示词
+        String systemPrompt = systemPromptTemplate.render();
+
+        // 加载用户提示词并填充变量
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("resumeText", resumeText);
+        String userPrompt = userPromptTemplate.render(variables);
+
+        // 添加格式指令到系统提示词
+        String systemPromptWithFormat = systemPrompt + "\n\n" + outputConverter.getFormat();
+
+        // 调用AI；失败直接抛出，由 Stream 消费者统一重试并标记 FAILED，禁止伪造成功结果
+        ChatClient chatClient = llmProviderRegistry.getPlainChatClient();
+        ResumeAnalysisResponseDTO dto = structuredOutputInvoker.invoke(
+            chatClient,
+            systemPromptWithFormat,
+            userPrompt,
+            outputConverter,
+            ErrorCode.RESUME_ANALYSIS_FAILED,
+            "AI 分析失败：",
+            "简历分析",
+            log
+        );
+        log.debug("AI响应解析成功: overallScore={}", dto.overallScore());
+
+        // 转换为业务对象
+        ResumeAnalysisResponse result = convertToResponse(dto, resumeText);
+        log.info("简历分析完成，总分: {}", result.overallScore());
+
+        return result;
     }
     
     /**
@@ -156,25 +140,6 @@ public class ResumeGradingService {
             dto.summary(),
             dto.strengths(),
             suggestions,
-            originalText
-        );
-    }
-    
-    /**
-     * 创建错误响应
-     */
-    private ResumeAnalysisResponse createErrorResponse(String originalText, String errorMessage) {
-        return new ResumeAnalysisResponse(
-            0,
-            new ScoreDetail(0, 0, 0, 0, 0),
-            "分析过程中出现错误: " + errorMessage,
-            List.of(),
-            List.of(new Suggestion(
-                "系统",
-                "高",
-                "AI分析服务暂时不可用",
-                "请稍后重试，或检查AI服务是否正常运行"
-            )),
             originalText
         );
     }

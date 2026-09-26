@@ -1,5 +1,6 @@
 package interview.guide.modules.resume.service;
 
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.infrastructure.file.FileHashService;
@@ -44,12 +45,13 @@ public class ResumePersistenceService {
      * @return 如果存在返回已有的简历实体，否则返回空
      */
     public Optional<ResumeEntity> findExistingResume(MultipartFile file) {
+        Long userId = UserContext.requireUserId();
         try {
             String fileHash = fileHashService.calculateHash(file);
-            Optional<ResumeEntity> existing = resumeRepository.findByFileHash(fileHash);
+            Optional<ResumeEntity> existing = resumeRepository.findByUserIdAndFileHash(userId, fileHash);
             
             if (existing.isPresent()) {
-                log.info("检测到重复简历: hash={}", fileHash);
+                log.info("检测到重复简历: userId={}, hash={}", userId, fileHash);
                 ResumeEntity resume = existing.get();
                 resume.incrementAccessCount();
                 resumeRepository.save(resume);
@@ -72,6 +74,7 @@ public class ResumePersistenceService {
             String fileHash = fileHashService.calculateHash(file);
             
             ResumeEntity resume = new ResumeEntity();
+            resume.setUserId(UserContext.requireUserId());
             resume.setFileHash(fileHash);
             resume.setOriginalFilename(file.getOriginalFilename());
             resume.setFileSize(file.getSize());
@@ -165,10 +168,10 @@ public class ResumePersistenceService {
     }
     
     /**
-     * 获取所有简历列表
+     * 获取当前用户的简历列表
      */
     public List<ResumeEntity> findAllResumes() {
-        return resumeRepository.findAll();
+        return resumeRepository.findByUserIdOrderByUploadedAtDesc(UserContext.requireUserId());
     }
     
     /**
@@ -210,10 +213,27 @@ public class ResumePersistenceService {
     }
     
     /**
-     * 根据ID获取简历
+     * 根据ID获取简历（不做归属校验，仅限异步任务等内部链路使用）
      */
     public Optional<ResumeEntity> findById(Long id) {
         return resumeRepository.findById(id);
+    }
+
+    /**
+     * 根据ID获取当前用户的简历
+     */
+    public Optional<ResumeEntity> findOwnedById(Long id) {
+        Long userId = UserContext.requireUserId();
+        return resumeRepository.findById(id)
+            .filter(resume -> userId.equals(resume.getUserId()));
+    }
+
+    /**
+     * 根据ID获取当前用户的简历，不存在或不属于当前用户时抛出业务异常
+     */
+    public ResumeEntity requireOwnedById(Long id) {
+        return findOwnedById(id)
+            .orElseThrow(() -> new BusinessException(ErrorCode.RESUME_NOT_FOUND, "简历不存在"));
     }
     
     /**
@@ -222,12 +242,7 @@ public class ResumePersistenceService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteResume(Long id) {
-        Optional<ResumeEntity> resumeOpt = resumeRepository.findById(id);
-        if (resumeOpt.isEmpty()) {
-            throw new BusinessException(ErrorCode.RESUME_NOT_FOUND);
-        }
-        
-        ResumeEntity resume = resumeOpt.get();
+        ResumeEntity resume = requireOwnedById(id);
         
         // 1. 删除所有简历分析记录
         List<ResumeAnalysisEntity> analyses = analysisRepository.findByResumeIdOrderByAnalyzedAtDesc(id);

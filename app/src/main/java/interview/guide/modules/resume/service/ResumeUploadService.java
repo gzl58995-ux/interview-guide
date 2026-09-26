@@ -190,8 +190,7 @@ public class ResumeUploadService {
      * @param resumeId 简历ID
      */
     public void reanalyze(Long resumeId) {
-        resumeRepository.findById(resumeId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.RESUME_NOT_FOUND, "简历不存在"));
+        persistenceService.requireOwnedById(resumeId);
 
         log.info("开始重新分析简历: resumeId={}", resumeId);
 

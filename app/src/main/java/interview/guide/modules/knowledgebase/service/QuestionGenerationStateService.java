@@ -1,5 +1,6 @@
 package interview.guide.modules.knowledgebase.service;
 
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.modules.knowledgebase.model.KnowledgeBaseEntity;
@@ -39,6 +40,10 @@ public class QuestionGenerationStateService {
       QuestionGenerationConfig config
   ) {
     KnowledgeBaseEntity kb = lockKnowledgeBase(knowledgeBaseId);
+    Long userId = UserContext.requireUserId();
+    if (!userId.equals(kb.getUserId())) {
+      throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_NOT_FOUND);
+    }
     if (kb.getVectorStatus() != VectorStatus.COMPLETED) {
       throw new BusinessException(ErrorCode.BAD_REQUEST, "知识库尚未完成向量化");
     }
@@ -61,7 +66,8 @@ public class QuestionGenerationStateService {
 
   @Transactional(readOnly = true)
   public QuestionGenStatusResponse getStatus(Long knowledgeBaseId) {
-    KnowledgeBaseEntity kb = knowledgeBaseRepository.findById(knowledgeBaseId)
+    KnowledgeBaseEntity kb = knowledgeBaseRepository
+        .findByIdAndUserId(knowledgeBaseId, UserContext.requireUserId())
         .orElseThrow(() -> new BusinessException(ErrorCode.KNOWLEDGE_BASE_NOT_FOUND));
     return toResponse(kb, readConfigOrNull(kb.getQuestionGenConfig()));
   }

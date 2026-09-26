@@ -50,6 +50,9 @@ spring:
         remove-existing-vector-store-table: false
 
 app:
+  auth:
+    jwt:
+      secret: test-auth-jwt-secret-0123456789abcdef
   ai:
     default-provider: dashscope
     security:

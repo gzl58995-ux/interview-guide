@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
  * Resume Entity for deduplication and persistence
  */
 @Entity
-@Table(name = "resumes", indexes = {
-    @Index(name = "idx_resume_hash", columnList = "fileHash", unique = true)
+@Table(name = "resumes", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_resumes_user_file_hash", columnNames = {"user_id", "file_hash"})
 })
 public class ResumeEntity {
     
@@ -19,8 +19,12 @@ public class ResumeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    // 归属用户 ID
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+    
     // 文件内容的SHA-256哈希值，用于去重
-    @Column(nullable = false, unique = true, length = 64)
+    @Column(nullable = false, length = 64)
     private String fileHash;
     
     // 原始文件名
@@ -96,6 +100,14 @@ public class ResumeEntity {
     
     public void setId(Long id) {
         this.id = id;
+    }
+    
+    public Long getUserId() {
+        return userId;
+    }
+    
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
     
     public String getFileHash() {

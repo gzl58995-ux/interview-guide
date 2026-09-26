@@ -1,5 +1,6 @@
 package interview.guide.modules.interview.service;
 
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.constant.CommonConstants.InterviewDefaults;
 import interview.guide.common.ai.LlmProviderRegistry;
 import interview.guide.common.exception.BusinessException;
@@ -102,6 +103,8 @@ public class InterviewSessionService {
     }
 
     private InterviewSessionDTO createSessionInternal(CreateInterviewRequest request, String requestId) {
+        Long userId = UserContext.requireUserId();
+
         // 如果指定了resumeId且未强制创建，检查是否有未完成的会话
         if (request.resumeId() != null && !Boolean.TRUE.equals(request.forceCreate())) {
             Optional<InterviewSessionDTO> unfinishedOpt = findUnfinishedSession(request.resumeId());
@@ -168,6 +171,7 @@ public class InterviewSessionService {
         // 幂等请求必须先成功落库，再写入易失缓存，保证进程异常后可从数据库恢复。
         sessionCache.saveSession(
             sessionId,
+            userId,
             request.resumeText() != null ? request.resumeText() : "",
             request.resumeId(),
             null,
@@ -200,10 +204,11 @@ public class InterviewSessionService {
         }
 
         String sessionId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        Long userId = UserContext.requireUserId();
         persistenceService.saveSession(
             sessionId, null, questions.size(), questions, llmProvider, skillId, difficulty,
             "KNOWLEDGE_BASE", knowledgeBaseId, interviewCategory);
-        sessionCache.saveSession(sessionId, "", null, knowledgeBaseId, interviewCategory,
+        sessionCache.saveSession(sessionId, userId, "", null, knowledgeBaseId, interviewCategory,
             questions, 0, SessionStatus.CREATED);
 
         return new InterviewSessionDTO(
@@ -234,14 +239,16 @@ public class InterviewSessionService {
      * 获取会话信息（优先从缓存获取，缓存未命中则从数据库恢复）
      */
     public InterviewSessionDTO getSession(String sessionId) {
-        // 1. 尝试从 Redis 缓存获取
+        Long userId = UserContext.requireUserId();
+
+        // 1. 尝试从 Redis 缓存获取（仅命中当前用户自己的会话）
         Optional<CachedSession> cachedOpt = sessionCache.getSession(sessionId);
-        if (cachedOpt.isPresent()) {
+        if (cachedOpt.isPresent() && userId.equals(cachedOpt.get().getUserId())) {
             return toDTO(cachedOpt.get());
         }
 
-        // 2. 缓存未命中，从数据库恢复
-        CachedSession restoredSession = restoreSessionFromDatabase(sessionId);
+        // 2. 缓存未命中或不属于当前用户，从数据库恢复
+        CachedSession restoredSession = restoreSessionFromDatabase(sessionId, userId);
         if (restoredSession == null) {
             throw new BusinessException(ErrorCode.INTERVIEW_SESSION_NOT_FOUND);
         }
@@ -253,13 +260,14 @@ public class InterviewSessionService {
      * 查找并恢复未完成的面试会话
      */
     public Optional<InterviewSessionDTO> findUnfinishedSession(Long resumeId) {
+        Long userId = UserContext.requireUserId();
         try {
-            // 1. 先从 Redis 缓存查找
+            // 1. 先从 Redis 缓存查找（仅接受当前用户自己的会话）
             Optional<String> cachedSessionIdOpt = sessionCache.findUnfinishedSessionId(resumeId);
             if (cachedSessionIdOpt.isPresent()) {
                 String sessionId = cachedSessionIdOpt.get();
                 Optional<CachedSession> cachedOpt = sessionCache.getSession(sessionId);
-                if (cachedOpt.isPresent()) {
+                if (cachedOpt.isPresent() && userId.equals(cachedOpt.get().getUserId())) {
                     log.debug("从 Redis 缓存找到未完成会话: resumeId={}, sessionId={}", resumeId, sessionId);
                     return Optional.of(toDTO(cachedOpt.get()));
                 }
@@ -291,11 +299,12 @@ public class InterviewSessionService {
     }
 
     /**
-     * 从数据库恢复会话并缓存到 Redis
+     * 从数据库恢复当前用户的会话并缓存到 Redis
      */
-    private CachedSession restoreSessionFromDatabase(String sessionId) {
+    private CachedSession restoreSessionFromDatabase(String sessionId, Long userId) {
         try {
-            Optional<InterviewSessionEntity> entityOpt = persistenceService.findBySessionId(sessionId);
+            Optional<InterviewSessionEntity> entityOpt = persistenceService.findBySessionId(sessionId)
+                .filter(entity -> userId.equals(entity.getUserId()));
             return entityOpt.map(this::restoreSessionFromEntity).orElse(null);
         } catch (Exception e) {
             log.error("从数据库恢复会话失败: {}", e.getMessage(), e);
@@ -329,6 +338,7 @@ public class InterviewSessionService {
             // 保存到 Redis 缓存
             sessionCache.saveSession(
                 entity.getSessionId(),
+                entity.getUserId(),
                 entity.getResume() != null ? entity.getResume().getResumeText() : "",
                 entity.getResume() != null ? entity.getResume().getId() : null,
                 entity.getKnowledgeBaseId(),
@@ -552,19 +562,21 @@ public class InterviewSessionService {
     }
 
     /**
-     * 获取或恢复会话（优先从缓存获取）
+     * 获取当前用户自己的或恢复会话（优先从缓存获取）
      */
     private CachedSession getOrRestoreSession(String sessionId) {
-        // 1. 尝试从 Redis 缓存获取
+        Long userId = UserContext.requireUserId();
+
+        // 1. 尝试从 Redis 缓存获取（仅命中当前用户自己的会话）
         Optional<CachedSession> cachedOpt = sessionCache.getSession(sessionId);
-        if (cachedOpt.isPresent()) {
+        if (cachedOpt.isPresent() && userId.equals(cachedOpt.get().getUserId())) {
             // 刷新 TTL
             sessionCache.refreshSessionTTL(sessionId);
             return cachedOpt.get();
         }
 
-        // 2. 缓存未命中，从数据库恢复
-        CachedSession restoredSession = restoreSessionFromDatabase(sessionId);
+        // 2. 缓存未命中或不属于当前用户，从数据库恢复
+        CachedSession restoredSession = restoreSessionFromDatabase(sessionId, userId);
         if (restoredSession == null) {
             throw new BusinessException(ErrorCode.INTERVIEW_SESSION_NOT_FOUND);
         }

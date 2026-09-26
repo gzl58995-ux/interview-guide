@@ -1,5 +1,6 @@
 package interview.guide.modules.interviewschedule.service;
 
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.modules.interviewschedule.model.CreateInterviewRequest;
@@ -31,6 +32,7 @@ public class InterviewScheduleService {
     public InterviewScheduleDTO create(CreateInterviewRequest request) {
         InterviewScheduleEntity entity = new InterviewScheduleEntity();
         BeanUtils.copyProperties(request, entity);
+        entity.setUserId(UserContext.requireUserId());
         entity.setStatus(InterviewStatus.PENDING);
 
         return toDTO(repository.save(entity));
@@ -45,7 +47,7 @@ public class InterviewScheduleService {
 
     @Transactional
     public void delete(Long id) {
-        repository.deleteById(id);
+        repository.delete(getByIdOrThrow(id));
     }
 
     @Transactional
@@ -56,14 +58,15 @@ public class InterviewScheduleService {
     }
 
     public List<InterviewScheduleDTO> getAll(String status, LocalDateTime start, LocalDateTime end) {
+        Long userId = UserContext.requireUserId();
         List<InterviewScheduleEntity> entities;
 
         if (start != null && end != null) {
-            entities = repository.findByInterviewTimeBetween(start, end);
+            entities = repository.findByUserIdAndInterviewTimeBetween(userId, start, end);
         } else if (status != null) {
-            entities = repository.findByStatus(InterviewStatus.valueOf(status));
+            entities = repository.findByUserIdAndStatus(userId, InterviewStatus.valueOf(status));
         } else {
-            entities = repository.findAll();
+            entities = repository.findByUserId(userId);
         }
 
         return entities.stream()
@@ -76,7 +79,7 @@ public class InterviewScheduleService {
     }
 
     private InterviewScheduleEntity getByIdOrThrow(Long id) {
-        return repository.findById(id)
+        return repository.findByIdAndUserId(id, UserContext.requireUserId())
             .orElseThrow(() -> new BusinessException(ErrorCode.INTERVIEW_SCHEDULE_NOT_FOUND, "面试日程不存在: " + id));
     }
 

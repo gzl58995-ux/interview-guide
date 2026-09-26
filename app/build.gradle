@@ -62,6 +62,14 @@ dependencies {
     // Redisson 4.0 - Redis客户端 (Boot 4 compatible)
     implementation "org.redisson:redisson-spring-boot-starter:${libs.versions.redisson.get()}"
 
+    // JWT 认证
+    implementation libs.jjwt.api
+    runtimeOnly libs.jjwt.impl
+    runtimeOnly libs.jjwt.jackson
+
+    // 密码哈希：只引入 spring-security-crypto 使用 BCrypt，不引入完整 Spring Security 过滤链
+    implementation 'org.springframework.security:spring-security-crypto'
+
     // Prometheus metrics endpoint for Actuator
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 

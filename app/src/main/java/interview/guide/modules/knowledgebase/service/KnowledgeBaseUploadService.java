@@ -1,5 +1,6 @@
 package interview.guide.modules.knowledgebase.service;
 
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.infrastructure.file.FileHashService;
@@ -56,11 +57,12 @@ public class KnowledgeBaseUploadService {
         String contentType = parseService.detectContentType(file);
         validateContentType(contentType, fileName);
 
-        // 3. 检查知识库是否已存在（去重）
+        // 3. 检查当前用户是否已存在相同文件（去重）
+        Long userId = UserContext.requireUserId();
         String fileHash = fileHashService.calculateHash(file);
-        Optional<KnowledgeBaseEntity> existingKb = knowledgeBaseRepository.findByFileHash(fileHash);
+        Optional<KnowledgeBaseEntity> existingKb = knowledgeBaseRepository.findByUserIdAndFileHash(userId, fileHash);
         if (existingKb.isPresent()) {
-            log.info("检测到重复知识库: hash={}", fileHash);
+            log.info("检测到重复知识库: userId={}, hash={}", userId, fileHash);
             return persistenceService.handleDuplicateKnowledgeBase(existingKb.get(), fileHash);
         }
 
@@ -137,7 +139,8 @@ public class KnowledgeBaseUploadService {
      * @param kbId 知识库ID
      */
     public void revectorize(Long kbId) {
-        KnowledgeBaseEntity kb = knowledgeBaseRepository.findById(kbId)
+        KnowledgeBaseEntity kb = knowledgeBaseRepository
+            .findByIdAndUserId(kbId, UserContext.requireUserId())
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "知识库不存在"));
 
         if (kb.getStorageKey() == null || kb.getStorageKey().trim().isEmpty()

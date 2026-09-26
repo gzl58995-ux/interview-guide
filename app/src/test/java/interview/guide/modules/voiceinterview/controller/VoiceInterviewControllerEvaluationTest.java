@@ -46,7 +46,7 @@ class VoiceInterviewControllerEvaluationTest {
             .evaluateStatus(AsyncTaskStatus.PENDING)
             .updatedAt(updatedAt)
             .build();
-        when(voiceInterviewService.getSession(1L)).thenReturn(session);
+        when(voiceInterviewService.requireOwnedSession(1L)).thenReturn(session);
 
         Result<VoiceEvaluationStatusDTO> result = controller.getEvaluation(1L);
 
@@ -62,7 +62,7 @@ class VoiceInterviewControllerEvaluationTest {
             .id(2L)
             .evaluateStatus(AsyncTaskStatus.PENDING)
             .build();
-        when(voiceInterviewService.getSession(2L)).thenReturn(session);
+        when(voiceInterviewService.requireOwnedSession(2L)).thenReturn(session);
 
         Result<VoiceEvaluationStatusDTO> result = controller.generateEvaluation(2L);
 

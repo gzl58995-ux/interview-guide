@@ -3,6 +3,8 @@ package interview.guide.modules.knowledgebase.service;
 import interview.guide.common.ai.LlmProviderRegistry;
 import interview.guide.common.ai.PromptSanitizer;
 import interview.guide.common.ai.StructuredOutputInvoker;
+import interview.guide.common.auth.AuthPrincipal;
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.modules.knowledgebase.listener.QuestionGenStreamConsumer;
 import interview.guide.modules.knowledgebase.listener.QuestionGenStreamProducer;
@@ -17,6 +19,7 @@ import interview.guide.modules.knowledgebase.model.VectorStatus;
 import interview.guide.modules.knowledgebase.repository.KnowledgeBaseQuestionRepository;
 import interview.guide.modules.knowledgebase.repository.KnowledgeBaseRepository;
 import interview.guide.infrastructure.redis.RedisService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -89,6 +92,7 @@ class QuestionGenerationAsyncTest {
 
   @BeforeEach
   void setUp() throws Exception {
+    UserContext.set(new AuthPrincipal(1L, "tester", false));
     stateService = new QuestionGenerationStateService(
         knowledgeBaseRepository,
         questionRepository,
@@ -128,6 +132,11 @@ class QuestionGenerationAsyncTest {
 
   }
 
+  @AfterEach
+  void tearDown() {
+    UserContext.clear();
+  }
+
   private void setField(Class<?> clazz, String fieldName, Object value) throws Exception {
     var field = clazz.getDeclaredField(fieldName);
     field.setAccessible(true);
@@ -137,6 +146,7 @@ class QuestionGenerationAsyncTest {
   private KnowledgeBaseEntity buildKb(Long id, QuestionGenStatus status, String taskId) {
     KnowledgeBaseEntity kb = new KnowledgeBaseEntity();
     kb.setId(id);
+    kb.setUserId(1L);
     kb.setName("测试知识库");
     kb.setFileHash("hash-test");
     kb.setVectorStatus(VectorStatus.COMPLETED);

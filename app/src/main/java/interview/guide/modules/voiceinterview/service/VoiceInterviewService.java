@@ -1,10 +1,12 @@
 package interview.guide.modules.voiceinterview.service;
 
 import interview.guide.common.ai.LlmProviderRegistry;
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.constant.CommonConstants.InterviewDefaults;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.common.model.AsyncTaskStatus;
+import interview.guide.modules.resume.repository.ResumeRepository;
 import interview.guide.modules.voiceinterview.config.VoiceInterviewProperties;
 import interview.guide.modules.voiceinterview.dto.CreateSessionRequest;
 import interview.guide.modules.voiceinterview.dto.VoiceInterviewMessageDTO;
@@ -51,6 +53,7 @@ public class VoiceInterviewService {
     private final VoiceInterviewSessionRepository sessionRepository;
     private final VoiceInterviewMessageRepository messageRepository;
     private final VoiceInterviewEvaluationRepository evaluationRepository;
+    private final ResumeRepository resumeRepository;
     private final RedissonClient redissonClient;
     private final VoiceInterviewProperties properties;
     private final VoiceEvaluateStreamProducer voiceEvaluateStreamProducer;
@@ -58,7 +61,6 @@ public class VoiceInterviewService {
 
     private static final String SESSION_CACHE_KEY_PREFIX = "voice:interview:session:";
     private static final int CACHE_TTL_HOURS = 1;
-    private static final String DEFAULT_USER_ID = "default";
     private static final Duration PENDING_EVALUATION_REQUEUE_DELAY = Duration.ofMinutes(3);
     private static final Duration PROCESSING_EVALUATION_TIMEOUT = Duration.ofMinutes(30);
 
@@ -71,13 +73,21 @@ public class VoiceInterviewService {
      */
     @Transactional
     public SessionResponseDTO createSession(CreateSessionRequest request) {
+        Long userId = UserContext.requireUserId();
         String effectiveSkillId = request.getSkillId() != null ? request.getSkillId() : InterviewDefaults.SKILL_ID;
         String effectiveLlmProvider = (request.getLlmProvider() != null && !request.getLlmProvider().isBlank())
             ? request.getLlmProvider()
             : null;
 
+        // 关联简历必须是当前用户自己的，避免面试过程读取他人简历正文
+        if (request.getResumeId() != null) {
+            resumeRepository.findById(request.getResumeId())
+                .filter(resume -> userId.equals(resume.getUserId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "简历不存在"));
+        }
+
         VoiceInterviewSessionEntity session = VoiceInterviewSessionEntity.builder()
-                .userId(DEFAULT_USER_ID)
+                .userId(userId)
                 .roleType(effectiveSkillId)
                 .skillId(effectiveSkillId)
                 .difficulty(request.getDifficulty() != null ? request.getDifficulty() : InterviewDefaults.DIFFICULTY)
@@ -177,7 +187,15 @@ public class VoiceInterviewService {
         // Try cache first
         String cacheKey = getSessionCacheKey(sessionId);
         RBucket<VoiceInterviewSessionEntity> bucket = redissonClient.getBucket(cacheKey);
-        VoiceInterviewSessionEntity cached = bucket.get();
+        VoiceInterviewSessionEntity cached;
+        try {
+            cached = bucket.get();
+        } catch (Exception e) {
+            // 实体结构升级后旧缓存可能无法反序列化，删除后回退数据库
+            log.warn("读取语音会话缓存失败，已清理缓存: sessionId={}, error={}", sessionId, e.getMessage());
+            bucket.delete();
+            cached = null;
+        }
 
         if (cached != null) {
             log.debug("Session {} found in cache", sessionId);
@@ -186,6 +204,28 @@ public class VoiceInterviewService {
 
         // Fallback to database
         return sessionRepository.findById(sessionId).orElse(null);
+    }
+
+    /**
+     * 获取当前用户自己的会话，缓存与数据库都未命中或不属于当前用户时抛出业务异常。
+     */
+    public VoiceInterviewSessionEntity requireOwnedSession(Long sessionId) {
+        Long userId = UserContext.requireUserId();
+        VoiceInterviewSessionEntity cached = getSession(sessionId);
+        if (cached != null && userId.equals(cached.getUserId())) {
+            return cached;
+        }
+        return sessionRepository.findById(sessionId)
+            .filter(session -> userId.equals(session.getUserId()))
+            .orElseThrow(() -> new BusinessException(
+                ErrorCode.VOICE_SESSION_NOT_FOUND, "会话不存在: " + sessionId));
+    }
+
+    /**
+     * 仅返回当前用户自己的会话 DTO
+     */
+    public SessionResponseDTO getOwnedSessionDTO(Long sessionId) {
+        return buildSessionResponse(requireOwnedSession(sessionId));
     }
 
     /**
@@ -370,6 +410,7 @@ public class VoiceInterviewService {
      * Get conversation history as DTOs (for frontend)
      */
     public List<VoiceInterviewMessageDTO> getConversationHistoryDTO(String sessionId) {
+        requireOwnedSession(parseSessionId(sessionId));
         return getConversationHistory(sessionId).stream()
             .map(msg -> VoiceInterviewMessageDTO.builder()
                 .id(msg.getId())
@@ -446,15 +487,14 @@ public class VoiceInterviewService {
     }
 
     /**
-     * Get all sessions for a user
-     * 获取用户所有会话
+     * Get all sessions for current user
+     * 获取当前用户所有会话
      *
-     * @param userId User ID (optional, defaults to DEFAULT_USER_ID)
      * @param status Filter by status (optional)
      * @return List of session metadata
      */
-    public List<SessionMetaDTO> getAllSessions(String userId, String status) {
-        userId = userId != null ? userId : DEFAULT_USER_ID;
+    public List<SessionMetaDTO> getAllSessions(String status) {
+        Long userId = UserContext.requireUserId();
 
         List<VoiceInterviewSessionEntity> sessions;
         if (status != null && !status.isEmpty()) {
@@ -680,9 +720,7 @@ public class VoiceInterviewService {
      */
     @Transactional
     public void deleteSession(Long sessionId) {
-        if (!sessionRepository.existsById(sessionId)) {
-            throw new BusinessException(ErrorCode.VOICE_SESSION_NOT_FOUND, "会话不存在: " + sessionId);
-        }
+        requireOwnedSession(sessionId);
         evaluationRepository.findBySessionId(sessionId).ifPresent(evaluationRepository::delete);
         messageRepository.deleteBySessionId(sessionId);
         sessionRepository.deleteById(sessionId);

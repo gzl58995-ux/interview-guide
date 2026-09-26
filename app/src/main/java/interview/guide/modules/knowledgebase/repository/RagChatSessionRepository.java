@@ -17,26 +17,38 @@ import java.util.Optional;
 public interface RagChatSessionRepository extends JpaRepository<RagChatSessionEntity, Long> {
 
     /**
-     * 按更新时间倒序获取所有活跃会话
+     * 根据ID查找当前用户的会话
      */
-    List<RagChatSessionEntity> findByStatusOrderByUpdatedAtDesc(SessionStatus status);
+    Optional<RagChatSessionEntity> findByIdAndUserId(Long id, Long userId);
 
     /**
-     * 获取所有会话（按更新时间倒序）
+     * 按更新时间倒序获取当前用户的活跃会话
      */
-    List<RagChatSessionEntity> findAllByOrderByUpdatedAtDesc();
+    List<RagChatSessionEntity> findByUserIdAndStatusOrderByUpdatedAtDesc(Long userId, SessionStatus status);
 
     /**
-     * 获取所有会话（按置顶状态和更新时间排序：置顶的在前，然后按更新时间倒序）
+     * 获取当前用户的所有会话（按更新时间倒序）
      */
-    @Query("SELECT s FROM RagChatSessionEntity s ORDER BY s.isPinned DESC, s.updatedAt DESC")
-    List<RagChatSessionEntity> findAllOrderByPinnedAndUpdatedAtDesc();
+    List<RagChatSessionEntity> findByUserIdOrderByUpdatedAtDesc(Long userId);
 
     /**
-     * 根据知识库ID查找相关会话
+     * 获取当前用户的所有会话（按置顶状态和更新时间排序：置顶的在前，然后按更新时间倒序）
+     */
+    @Query("SELECT s FROM RagChatSessionEntity s WHERE s.userId = :userId ORDER BY s.isPinned DESC, s.updatedAt DESC")
+    List<RagChatSessionEntity> findByUserIdOrderByPinnedAndUpdatedAtDesc(@Param("userId") Long userId);
+
+    /**
+     * 根据知识库ID查找相关会话（内部链路使用）
      */
     @Query("SELECT DISTINCT s FROM RagChatSessionEntity s JOIN s.knowledgeBases kb WHERE kb.id IN :kbIds ORDER BY s.updatedAt DESC")
     List<RagChatSessionEntity> findByKnowledgeBaseIds(@Param("kbIds") List<Long> knowledgeBaseIds);
+
+    /**
+     * 根据知识库ID查找当前用户的相关会话
+     */
+    @Query("SELECT DISTINCT s FROM RagChatSessionEntity s JOIN s.knowledgeBases kb WHERE s.userId = :userId AND kb.id IN :kbIds ORDER BY s.updatedAt DESC")
+    List<RagChatSessionEntity> findByUserIdAndKnowledgeBaseIds(@Param("userId") Long userId,
+                                                               @Param("kbIds") List<Long> knowledgeBaseIds);
 
     /**
      * 获取会话详情（带消息列表和知识库）
@@ -44,6 +56,13 @@ public interface RagChatSessionRepository extends JpaRepository<RagChatSessionEn
      */
     @Query("SELECT DISTINCT s FROM RagChatSessionEntity s LEFT JOIN FETCH s.knowledgeBases WHERE s.id = :id")
     Optional<RagChatSessionEntity> findByIdWithMessagesAndKnowledgeBases(@Param("id") Long id);
+
+    /**
+     * 获取当前用户的会话详情（带知识库，不带消息）
+     */
+    @Query("SELECT s FROM RagChatSessionEntity s LEFT JOIN FETCH s.knowledgeBases WHERE s.id = :id AND s.userId = :userId")
+    Optional<RagChatSessionEntity> findByIdWithKnowledgeBasesAndUserId(@Param("id") Long id,
+                                                                       @Param("userId") Long userId);
 
     /**
      * 获取会话（带知识库，不带消息）

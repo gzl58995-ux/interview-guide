@@ -79,12 +79,7 @@ public class ResumeHistoryService {
      * 获取简历详情（包含分析历史）
      */
     public ResumeDetailDTO getResumeDetail(Long id) {
-        Optional<ResumeEntity> resumeOpt = resumePersistenceService.findById(id);
-        if (resumeOpt.isEmpty()) {
-            throw new BusinessException(ErrorCode.RESUME_NOT_FOUND);
-        }
-
-        ResumeEntity resume = resumeOpt.get();
+        ResumeEntity resume = resumePersistenceService.requireOwnedById(id);
 
         // 获取所有分析记录，使用 MapStruct 批量转换
         List<ResumeAnalysisEntity> analyses = resumePersistenceService.findAnalysesByResumeId(id);
@@ -155,12 +150,7 @@ public class ResumeHistoryService {
      * 导出简历分析报告为PDF
      */
     public ExportResult exportAnalysisPdf(Long resumeId) {
-        Optional<ResumeEntity> resumeOpt = resumePersistenceService.findById(resumeId);
-        if (resumeOpt.isEmpty()) {
-            throw new BusinessException(ErrorCode.RESUME_NOT_FOUND);
-        }
-
-        ResumeEntity resume = resumeOpt.get();
+        ResumeEntity resume = resumePersistenceService.requireOwnedById(resumeId);
         Optional<ResumeAnalysisResponse> analysisOpt = resumePersistenceService.getLatestAnalysisAsDTO(resumeId);
         if (analysisOpt.isEmpty()) {
             throw new BusinessException(ErrorCode.RESUME_ANALYSIS_NOT_FOUND);

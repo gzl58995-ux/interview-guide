@@ -12,10 +12,13 @@ import java.util.List;
  * 面试会话实体
  */
 @Entity
-@Table(name = "interview_sessions", indexes = {
+@Table(name = "interview_sessions", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_interview_sessions_user_request_id", columnNames = {"user_id", "request_id"})
+}, indexes = {
     @Index(name = "idx_interview_session_resume_created", columnList = "resume_id,created_at"),
     @Index(name = "idx_interview_session_resume_status_created", columnList = "resume_id,status,created_at"),
-    @Index(name = "idx_interview_session_skill_created", columnList = "skillId,createdAt")
+    @Index(name = "idx_interview_session_skill_created", columnList = "skillId,createdAt"),
+    @Index(name = "idx_interview_session_user_created", columnList = "user_id,created_at")
 })
 public class InterviewSessionEntity {
     
@@ -23,12 +26,16 @@ public class InterviewSessionEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    // 归属用户 ID
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+    
     // 会话ID (UUID)
     @Column(nullable = false, unique = true, length = 36)
     private String sessionId;
 
-    // 创建请求幂等键（仅文本面试创建链路使用）
-    @Column(name = "request_id", unique = true, length = 64)
+    // 创建请求幂等键（仅文本面试创建链路使用，按用户唯一）
+    @Column(name = "request_id", length = 64)
     private String requestId;
     
     // 面试主题
@@ -136,6 +143,14 @@ public class InterviewSessionEntity {
     
     public void setId(Long id) {
         this.id = id;
+    }
+    
+    public Long getUserId() {
+        return userId;
+    }
+    
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
     
     public String getSessionId() {

@@ -1,5 +1,7 @@
 package interview.guide.modules.knowledgebase.service;
 
+import interview.guide.common.auth.AuthPrincipal;
+import interview.guide.common.auth.UserContext;
 import interview.guide.modules.knowledgebase.listener.QuestionGenStreamProducer;
 import interview.guide.modules.knowledgebase.model.KnowledgeBaseEntity;
 import interview.guide.modules.knowledgebase.model.KnowledgeBaseQuestionDTO;
@@ -7,6 +9,7 @@ import interview.guide.modules.knowledgebase.model.KnowledgeBaseQuestionEntity;
 import interview.guide.modules.knowledgebase.model.KnowledgeBaseQuestionStatus;
 import interview.guide.modules.knowledgebase.repository.KnowledgeBaseQuestionRepository;
 import interview.guide.modules.knowledgebase.repository.KnowledgeBaseRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -38,6 +42,7 @@ class KnowledgeBaseQuestionServiceTest {
 
   @BeforeEach
   void setUp() {
+    UserContext.set(new AuthPrincipal(1L, "tester", false));
     service = new KnowledgeBaseQuestionService(
         knowledgeBaseRepository,
         questionRepository,
@@ -45,6 +50,13 @@ class KnowledgeBaseQuestionServiceTest {
         questionGenStreamProducer,
         questionGenerationStateService
     );
+    when(knowledgeBaseRepository.findByIdAndUserId(1L, 1L))
+        .thenReturn(Optional.of(new KnowledgeBaseEntity()));
+  }
+
+  @AfterEach
+  void tearDown() {
+    UserContext.clear();
   }
 
   @Nested

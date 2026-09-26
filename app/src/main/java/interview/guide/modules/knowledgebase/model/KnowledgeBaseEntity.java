@@ -8,9 +8,11 @@ import java.time.LocalDateTime;
  * 知识库实体
  */
 @Entity
-@Table(name = "knowledge_bases", indexes = {
-    @Index(name = "idx_kb_hash", columnList = "fileHash", unique = true),
-    @Index(name = "idx_kb_category", columnList = "category")
+@Table(name = "knowledge_bases", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_kb_user_file_hash", columnNames = {"user_id", "file_hash"})
+}, indexes = {
+    @Index(name = "idx_kb_category", columnList = "category"),
+    @Index(name = "idx_kb_user_uploaded", columnList = "user_id,uploaded_at")
 })
 public class KnowledgeBaseEntity {
 
@@ -18,8 +20,12 @@ public class KnowledgeBaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 归属用户 ID
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     // 文件内容的SHA-256哈希值，用于去重
-    @Column(nullable = false, unique = true, length = 64)
+    @Column(nullable = false, length = 64)
     private String fileHash;
 
     // 知识库名称（用户自定义或从文件名提取）
@@ -144,6 +150,14 @@ public class KnowledgeBaseEntity {
     
     public void setId(Long id) {
         this.id = id;
+    }
+    
+    public Long getUserId() {
+        return userId;
+    }
+    
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
     
     public String getFileHash() {

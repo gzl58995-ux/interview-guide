@@ -1,5 +1,6 @@
 import { API_BASE_URL, request } from './request';
 import { buildVoiceWebSocketUrl } from '../utils/voiceWebSocketUrl';
+import { getAuthToken } from '../utils/authStorage';
 
 // ========== 类型定义 ==========
 
@@ -223,15 +224,15 @@ export const voiceInterviewApi = {
   },
 
   /**
-   * Get all sessions
+   * Get all sessions of current user
    */
-  async getAllSessions(userId?: string, status?: string): Promise<SessionMeta[]> {
+  async getAllSessions(status?: string): Promise<SessionMeta[]> {
     const params = new URLSearchParams();
-    if (userId) params.append('userId', userId);
     if (status) params.append('status', status);
 
+    const query = params.toString();
     return request.get<SessionMeta[]>(
-      `/api/voice-interview/sessions?${params.toString()}`
+      `/api/voice-interview/sessions${query ? `?${query}` : ''}`
     );
   },
 
@@ -406,7 +407,9 @@ export function connectWebSocket(
   sessionId: number,
   handlers: WebSocketEventHandlers
 ): VoiceInterviewWebSocket {
-  const webSocketUrl = buildVoiceWebSocketUrl(sessionId, API_BASE_URL, window.location.href);
+  const webSocketUrl = buildVoiceWebSocketUrl(
+    sessionId, API_BASE_URL, window.location.href, getAuthToken() ?? undefined
+  );
   const ws = new VoiceInterviewWebSocket(sessionId, webSocketUrl, handlers);
   ws.connect();
   return ws;

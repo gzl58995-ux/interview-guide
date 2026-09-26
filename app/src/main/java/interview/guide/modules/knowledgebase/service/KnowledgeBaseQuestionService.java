@@ -1,5 +1,6 @@
 package interview.guide.modules.knowledgebase.service;
 
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.constant.CommonConstants.InterviewDefaults;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
@@ -53,6 +54,7 @@ public class KnowledgeBaseQuestionService {
                                                       String category,
                                                       String difficulty,
                                                       String keyword) {
+    getKnowledgeBase(knowledgeBaseId);
     List<KnowledgeBaseQuestionEntity> questions = status == null
         ? questionRepository.findByKnowledgeBase_IdOrderByUpdatedAtDesc(knowledgeBaseId)
         : questionRepository.findByKnowledgeBase_IdAndStatusOrderByUpdatedAtDesc(knowledgeBaseId, status);
@@ -73,6 +75,7 @@ public class KnowledgeBaseQuestionService {
    */
   @Transactional(readOnly = true)
   public List<CategoryCount> listCategories(Long knowledgeBaseId) {
+    getKnowledgeBase(knowledgeBaseId);
     return questionRepository.findCategoryCounts(knowledgeBaseId);
   }
 
@@ -142,10 +145,8 @@ public class KnowledgeBaseQuestionService {
 
   @Transactional(rollbackFor = Exception.class)
   public void deleteQuestion(Long questionId) {
-    if (!questionRepository.existsById(questionId)) {
-      throw new BusinessException(ErrorCode.INTERVIEW_QUESTION_NOT_FOUND);
-    }
-    questionRepository.deleteById(questionId);
+    KnowledgeBaseQuestionEntity question = getQuestion(questionId);
+    questionRepository.delete(question);
   }
 
   /**
@@ -224,13 +225,21 @@ public class KnowledgeBaseQuestionService {
   }
 
   private KnowledgeBaseEntity getKnowledgeBase(Long knowledgeBaseId) {
-    return knowledgeBaseRepository.findById(knowledgeBaseId)
+    return knowledgeBaseRepository.findByIdAndUserId(knowledgeBaseId, UserContext.requireUserId())
         .orElseThrow(() -> new BusinessException(ErrorCode.KNOWLEDGE_BASE_NOT_FOUND));
   }
 
   private KnowledgeBaseQuestionEntity getQuestion(Long questionId) {
-    return questionRepository.findById(questionId)
+    KnowledgeBaseQuestionEntity question = questionRepository.findById(questionId)
         .orElseThrow(() -> new BusinessException(ErrorCode.INTERVIEW_QUESTION_NOT_FOUND));
+    Long knowledgeBaseId = question.getKnowledgeBaseId() != null
+        ? question.getKnowledgeBaseId()
+        : (question.getKnowledgeBase() != null ? question.getKnowledgeBase().getId() : null);
+    if (knowledgeBaseId == null
+        || knowledgeBaseRepository.findByIdAndUserId(knowledgeBaseId, UserContext.requireUserId()).isEmpty()) {
+      throw new BusinessException(ErrorCode.INTERVIEW_QUESTION_NOT_FOUND);
+    }
+    return question;
   }
 
   private boolean containsKeyword(KnowledgeBaseQuestionEntity question, String keyword) {

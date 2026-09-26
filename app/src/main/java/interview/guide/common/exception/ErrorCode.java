@@ -81,7 +81,14 @@ public enum ErrorCode {
     MODULE_NOT_FOUND(11008, "模块不存在"),
     VOICE_CONFIG_READ_FAILED(11009, "读取语音服务配置失败"),
     VOICE_CONFIG_WRITE_FAILED(11010, "写入语音服务配置失败"),
-    VOICE_CONFIG_TEST_FAILED(11011, "语音服务连通性测试失败");
+    VOICE_CONFIG_TEST_FAILED(11011, "语音服务连通性测试失败"),
+
+    // ========== 用户与认证模块错误 12xxx ==========
+    USERNAME_ALREADY_EXISTS(12001, "用户名已存在"),
+    USERNAME_OR_PASSWORD_INCORRECT(12002, "用户名或密码错误"),
+    USER_NOT_FOUND(12003, "用户不存在"),
+    TOKEN_INVALID(12004, "登录状态无效，请重新登录"),
+    TOKEN_EXPIRED(12005, "登录已过期，请重新登录");
 
     private final Integer code;
     private final String message;

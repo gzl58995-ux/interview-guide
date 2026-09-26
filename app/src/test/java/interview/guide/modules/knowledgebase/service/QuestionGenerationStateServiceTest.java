@@ -1,5 +1,7 @@
 package interview.guide.modules.knowledgebase.service;
 
+import interview.guide.common.auth.AuthPrincipal;
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.modules.knowledgebase.model.KnowledgeBaseEntity;
 import interview.guide.modules.knowledgebase.model.KnowledgeBaseQuestionEntity;
@@ -8,6 +10,7 @@ import interview.guide.modules.knowledgebase.model.QuestionGenerationConfig;
 import interview.guide.modules.knowledgebase.repository.KnowledgeBaseQuestionRepository;
 import interview.guide.modules.knowledgebase.repository.KnowledgeBaseRepository;
 import interview.guide.modules.knowledgebase.model.VectorStatus;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,11 +43,17 @@ class QuestionGenerationStateServiceTest {
 
   @BeforeEach
   void setUp() {
+    UserContext.set(new AuthPrincipal(1L, "tester", false));
     service = new QuestionGenerationStateService(
         knowledgeBaseRepository,
         questionRepository,
         new ObjectMapper()
     );
+  }
+
+  @AfterEach
+  void tearDown() {
+    UserContext.clear();
   }
 
   @Test
@@ -127,6 +136,7 @@ class QuestionGenerationStateServiceTest {
   private KnowledgeBaseEntity buildKb(QuestionGenStatus status, String taskId) {
     KnowledgeBaseEntity kb = new KnowledgeBaseEntity();
     kb.setId(1L);
+    kb.setUserId(1L);
     kb.setName("测试知识库");
     kb.setFileHash("hash");
     kb.setVectorStatus(VectorStatus.COMPLETED);

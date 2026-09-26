@@ -1,5 +1,6 @@
 package interview.guide.modules.knowledgebase.service;
 
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.modules.knowledgebase.model.KnowledgeBaseEntity;
@@ -37,10 +38,14 @@ public class KnowledgeBaseCountService {
 
         // 去重
         List<Long> uniqueIds = knowledgeBaseIds.stream().distinct().toList();
+        Long userId = UserContext.requireUserId();
 
-        // 验证所有知识库是否存在
+        // 验证所有知识库存在且属于当前用户
         Set<Long> existingIds = new HashSet<>(knowledgeBaseRepository.findAllById(uniqueIds)
-                .stream().map(KnowledgeBaseEntity::getId).toList());
+                .stream()
+                .filter(kb -> userId.equals(kb.getUserId()))
+                .map(KnowledgeBaseEntity::getId)
+                .toList());
 
         for (Long id : uniqueIds) {
             if (!existingIds.contains(id)) {
@@ -49,7 +54,7 @@ public class KnowledgeBaseCountService {
         }
 
         // 批量更新（单条 SQL）
-        int updated = knowledgeBaseRepository.incrementQuestionCountBatch(uniqueIds);
+        int updated = knowledgeBaseRepository.incrementQuestionCountBatch(userId, uniqueIds);
         log.debug("批量更新知识库提问计数: ids={}, updated={}", uniqueIds, updated);
     }
 }

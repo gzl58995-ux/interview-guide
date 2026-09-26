@@ -1,4 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { ROUTES } from '../constants/routes';
+import { clearAuthSession, getAuthToken } from '../utils/authStorage';
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -16,6 +18,7 @@ export interface Result<T = unknown> {
 }
 
 const SUCCESS_CODE = 200;
+const UNAUTHORIZED_CODE = 401;
 const RESULT_BLOB_PARSE_LIMIT = 64 * 1024;
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
@@ -24,6 +27,35 @@ const instance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000,
 });
+
+/**
+ * 请求拦截器：已登录时统一携带 Bearer Token
+ */
+instance.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+/**
+ * 本地存在会话但接口返回 401 时，清理会话并回登录页。
+ * 登录/注册接口自身返回 401（账号或密码错误）时不跳转，交给页面展示错误。
+ */
+function handleUnauthorized(): void {
+  const hadToken = getAuthToken() !== null;
+  clearAuthSession();
+  if (!hadToken) {
+    return;
+  }
+
+  const { pathname } = window.location;
+  if (pathname === ROUTES.login || pathname === ROUTES.register) {
+    return;
+  }
+  window.location.assign(ROUTES.login);
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object';
@@ -126,6 +158,9 @@ instance.interceptors.response.use(
         return response;
       }
       // 失败：直接抛出 message
+      if (result.code === UNAUTHORIZED_CODE) {
+        handleUnauthorized();
+      }
       return Promise.reject(new Error(result.message || '请求失败'));
     }
     
@@ -136,6 +171,9 @@ instance.interceptors.response.use(
     // 有响应的情况：后端返回了结果（即使是错误）
     if (error.response) {
       const { data, status } = error.response;
+      if (status === UNAUTHORIZED_CODE) {
+        handleUnauthorized();
+      }
       // 尝试解析 Result 格式
       const responseError = await getErrorFromResponseData(data);
       if (responseError) {

@@ -1,6 +1,7 @@
 export interface UserInfo {
   id: number;
   username: string;
+  admin: boolean;
   createdAt?: string;
 }
 

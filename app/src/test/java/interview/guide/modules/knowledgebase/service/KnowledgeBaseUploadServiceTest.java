@@ -1,11 +1,14 @@
 package interview.guide.modules.knowledgebase.service;
 
+import interview.guide.common.auth.AuthPrincipal;
+import interview.guide.common.auth.UserContext;
 import interview.guide.infrastructure.file.FileHashService;
 import interview.guide.infrastructure.file.FileStorageService;
 import interview.guide.infrastructure.file.FileValidationService;
 import interview.guide.modules.knowledgebase.listener.VectorizeStreamProducer;
 import interview.guide.modules.knowledgebase.model.KnowledgeBaseEntity;
 import interview.guide.modules.knowledgebase.repository.KnowledgeBaseRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,8 +54,14 @@ class KnowledgeBaseUploadServiceTest {
 
   @BeforeEach
   void setUp() {
+    UserContext.set(new AuthPrincipal(1L, "tester", false));
     service = new KnowledgeBaseUploadService(parseService, persistenceService, storageService,
         knowledgeBaseRepository, fileValidationService, fileHashService, vectorizeStreamProducer);
+  }
+
+  @AfterEach
+  void tearDown() {
+    UserContext.clear();
   }
 
   @Test
@@ -61,7 +70,7 @@ class KnowledgeBaseUploadServiceTest {
     MultipartFile file = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1, 2, 3});
     when(parseService.detectContentType(file)).thenReturn("application/pdf");
     when(fileHashService.calculateHash(file)).thenReturn("hash-1");
-    when(knowledgeBaseRepository.findByFileHash("hash-1")).thenReturn(Optional.empty());
+    when(knowledgeBaseRepository.findByUserIdAndFileHash(1L, "hash-1")).thenReturn(Optional.empty());
     when(storageService.uploadKnowledgeBase(file)).thenReturn("kb/1");
     when(storageService.getFileUrl("kb/1")).thenReturn("http://rustfs/kb/1");
     KnowledgeBaseEntity saved = new KnowledgeBaseEntity();
@@ -93,7 +102,7 @@ class KnowledgeBaseUploadServiceTest {
     MultipartFile file = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1, 2, 3});
     when(parseService.detectContentType(file)).thenReturn("application/pdf");
     when(fileHashService.calculateHash(file)).thenReturn("hash-2");
-    when(knowledgeBaseRepository.findByFileHash("hash-2")).thenReturn(Optional.empty());
+    when(knowledgeBaseRepository.findByUserIdAndFileHash(1L, "hash-2")).thenReturn(Optional.empty());
     when(storageService.uploadKnowledgeBase(file)).thenReturn("kb/12");
     when(storageService.getFileUrl("kb/12")).thenReturn("http://rustfs/kb/12");
     KnowledgeBaseEntity saved = new KnowledgeBaseEntity();
@@ -121,7 +130,7 @@ class KnowledgeBaseUploadServiceTest {
     MultipartFile file = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1, 2, 3});
     when(parseService.detectContentType(file)).thenReturn("application/pdf");
     when(fileHashService.calculateHash(file)).thenReturn("hash-3");
-    when(knowledgeBaseRepository.findByFileHash("hash-3")).thenReturn(Optional.empty());
+    when(knowledgeBaseRepository.findByUserIdAndFileHash(1L, "hash-3")).thenReturn(Optional.empty());
     when(storageService.uploadKnowledgeBase(file)).thenReturn("kb/orphan");
     when(storageService.getFileUrl("kb/orphan")).thenReturn("http://rustfs/kb/orphan");
     when(persistenceService.saveKnowledgeBase(any(), anyString(), any(), anyString(), anyString(), anyString()))
@@ -142,7 +151,7 @@ class KnowledgeBaseUploadServiceTest {
     MultipartFile file = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1, 2, 3});
     when(parseService.detectContentType(file)).thenReturn("application/pdf");
     when(fileHashService.calculateHash(file)).thenReturn("hash-4");
-    when(knowledgeBaseRepository.findByFileHash("hash-4")).thenReturn(Optional.empty());
+    when(knowledgeBaseRepository.findByUserIdAndFileHash(1L, "hash-4")).thenReturn(Optional.empty());
     when(storageService.uploadKnowledgeBase(file)).thenReturn("kb/orphan2");
     when(storageService.getFileUrl("kb/orphan2")).thenReturn("http://rustfs/kb/orphan2");
     when(persistenceService.saveKnowledgeBase(any(), anyString(), any(), anyString(), anyString(), anyString()))
@@ -165,7 +174,7 @@ class KnowledgeBaseUploadServiceTest {
     existing.setName("a.pdf");
     existing.setFileSize(3L);
     existing.setVectorStatus(interview.guide.modules.knowledgebase.model.VectorStatus.COMPLETED);
-    when(knowledgeBaseRepository.findByFileHash("hash-dup")).thenReturn(Optional.of(existing));
+    when(knowledgeBaseRepository.findByUserIdAndFileHash(1L, "hash-dup")).thenReturn(Optional.of(existing));
     when(persistenceService.handleDuplicateKnowledgeBase(existing, "hash-dup")).thenReturn(Map.of(
         "knowledgeBase", Map.of(
             "id", existing.getId(),
@@ -193,7 +202,7 @@ class KnowledgeBaseUploadServiceTest {
     kb.setId(11L);
     kb.setStorageKey("kb/11");
     kb.setOriginalFilename("a.pdf");
-    when(knowledgeBaseRepository.findById(11L)).thenReturn(Optional.of(kb));
+    when(knowledgeBaseRepository.findByIdAndUserId(11L, 1L)).thenReturn(Optional.of(kb));
     when(vectorizeStreamProducer.sendVectorizeTask(11L)).thenReturn(true);
 
     service.revectorize(11L);
@@ -211,7 +220,7 @@ class KnowledgeBaseUploadServiceTest {
     kb.setId(13L);
     kb.setStorageKey("kb/13");
     kb.setOriginalFilename("a.pdf");
-    when(knowledgeBaseRepository.findById(13L)).thenReturn(Optional.of(kb));
+    when(knowledgeBaseRepository.findByIdAndUserId(13L, 1L)).thenReturn(Optional.of(kb));
     when(vectorizeStreamProducer.sendVectorizeTask(13L)).thenReturn(false);
 
     assertThatThrownBy(() -> service.revectorize(13L))

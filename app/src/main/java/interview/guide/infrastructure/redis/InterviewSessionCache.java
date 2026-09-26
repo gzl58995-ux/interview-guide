@@ -50,6 +50,7 @@ public class InterviewSessionCache {
     @Data
     public static class CachedSession implements Serializable {
         private String sessionId;
+        private Long userId;
         private String resumeText;
         private Long resumeId;
         private Long knowledgeBaseId;
@@ -61,11 +62,12 @@ public class InterviewSessionCache {
         public CachedSession() {
         }
 
-        public CachedSession(String sessionId, String resumeText, Long resumeId, Long knowledgeBaseId,
+        public CachedSession(String sessionId, Long userId, String resumeText, Long resumeId, Long knowledgeBaseId,
                             String interviewCategory,
                             List<InterviewQuestionDTO> questions, int currentIndex,
                             SessionStatus status, ObjectMapper objectMapper) {
             this.sessionId = sessionId;
+            this.userId = userId;
             this.resumeText = resumeText;
             this.resumeId = resumeId;
             this.knowledgeBaseId = knowledgeBaseId;
@@ -91,13 +93,13 @@ public class InterviewSessionCache {
     /**
      * 保存会话到缓存
      */
-    public void saveSession(String sessionId, String resumeText, Long resumeId, Long knowledgeBaseId,
+    public void saveSession(String sessionId, Long userId, String resumeText, Long resumeId, Long knowledgeBaseId,
                            String interviewCategory,
                            List<InterviewQuestionDTO> questions, int currentIndex,
                            SessionStatus status) {
         String key = buildSessionKey(sessionId);
         CachedSession cachedSession = new CachedSession(
-            sessionId, resumeText, resumeId, knowledgeBaseId, interviewCategory,
+            sessionId, userId, resumeText, resumeId, knowledgeBaseId, interviewCategory,
             questions, currentIndex, status, objectMapper
         );
 

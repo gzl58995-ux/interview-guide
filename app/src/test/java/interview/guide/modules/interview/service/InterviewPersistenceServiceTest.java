@@ -1,9 +1,13 @@
 package interview.guide.modules.interview.service;
 
+import interview.guide.common.auth.AuthPrincipal;
+import interview.guide.common.auth.UserContext;
 import interview.guide.modules.interview.model.InterviewSessionEntity;
 import interview.guide.modules.interview.repository.InterviewAnswerRepository;
 import interview.guide.modules.interview.repository.InterviewSessionRepository;
 import interview.guide.modules.resume.repository.ResumeRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +37,16 @@ class InterviewPersistenceServiceTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
+  @BeforeEach
+  void setUp() {
+    UserContext.set(new AuthPrincipal(1L, "tester", false));
+  }
+
+  @AfterEach
+  void tearDown() {
+    UserContext.clear();
+  }
+
   @Test
   @DisplayName("知识库面试保存时写入 interviewCategory")
   void shouldSaveInterviewCategoryForKnowledgeBaseSession() {
@@ -46,6 +60,7 @@ class InterviewPersistenceServiceTest {
     ArgumentCaptor<InterviewSessionEntity> captor = ArgumentCaptor.forClass(InterviewSessionEntity.class);
     verify(sessionRepository).save(captor.capture());
     InterviewSessionEntity saved = captor.getValue();
+    assertThat(saved.getUserId()).isEqualTo(1L);
     assertThat(saved.getInterviewCategory()).isEqualTo("MySQL");
     assertThat(saved.getKnowledgeBaseId()).isEqualTo(9L);
     assertThat(saved.getSourceType()).isEqualTo("KNOWLEDGE_BASE");

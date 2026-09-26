@@ -26,14 +26,14 @@ public interface ResumeRepository extends JpaRepository<ResumeEntity, Long> {
     Optional<ResumeEntity> findByIdForUpdate(@Param("id") Long id);
     
     /**
-     * 根据文件哈希查找简历（用于去重）
+     * 根据文件哈希查找当前用户的简历（用于去重）
      */
-    Optional<ResumeEntity> findByFileHash(String fileHash);
-    
+    Optional<ResumeEntity> findByUserIdAndFileHash(Long userId, String fileHash);
+
     /**
-     * 检查文件哈希是否存在
+     * 查询当前用户的简历列表
      */
-    boolean existsByFileHash(String fileHash);
+    List<ResumeEntity> findByUserIdOrderByUploadedAtDesc(Long userId);
 
     // ========== P1-07 条件状态更新（终态不被覆盖，多实例安全） ==========
 

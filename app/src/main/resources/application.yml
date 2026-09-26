@@ -97,6 +97,13 @@ spring:
 
 # Application custom configuration
 app:
+  # 认证配置：JWT 密钥只允许通过 .env 的 APP_AUTH_JWT_SECRET 注入
+  auth:
+    jwt:
+      secret: ${APP_AUTH_JWT_SECRET:}
+      expire-minutes: ${APP_AUTH_JWT_EXPIRE_MINUTES:10080}
+      issuer: ${APP_AUTH_JWT_ISSUER:interview-guide}
+
   ai:
     default-provider: deepseek
     default-embedding-provider: dashscope

@@ -1,5 +1,7 @@
 package interview.guide.rag;
 
+import interview.guide.common.auth.AuthPrincipal;
+import interview.guide.common.auth.UserContext;
 import interview.guide.modules.knowledgebase.model.KnowledgeBaseEntity;
 import interview.guide.modules.knowledgebase.model.VectorStatus;
 import interview.guide.modules.knowledgebase.repository.KnowledgeBaseRepository;
@@ -102,6 +104,8 @@ class RagEvaluationTest {
       stmt.execute("DROP DATABASE IF EXISTS " + EVAL_DB);
       stmt.execute("CREATE DATABASE " + EVAL_DB);
       dbCreated = true;
+      // 测评链路复用生产查询服务，需要登录用户上下文按 user_id 归属数据
+      UserContext.set(new AuthPrincipal(1L, "rag-eval", false));
     } catch (Exception e) {
       fail("RAG 测评前置失败：无法重建独立测评数据库 " + EVAL_DB + "：" + e.getMessage());
     }
@@ -109,6 +113,7 @@ class RagEvaluationTest {
 
   @AfterAll
   static void dropDatabase() {
+    UserContext.clear();
     if (!dbCreated) {
       return;
     }
@@ -498,6 +503,7 @@ class RagEvaluationTest {
     Map<String, Integer> chunkCounts = new LinkedHashMap<>();
     fixtureContents.forEach((fixture, content) -> {
       KnowledgeBaseEntity kb = new KnowledgeBaseEntity();
+      kb.setUserId(1L);
       kb.setName("rag-eval-" + fixture);
       kb.setOriginalFilename(fixture);
       kb.setFileHash("rag-eval-" + RUN_ID + "-" + fixture);

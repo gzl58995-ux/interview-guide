@@ -1,5 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import Layout from './components/Layout';
+import RequireAuth from './components/RequireAuth';
+import RequireAdmin from './components/RequireAdmin';
+import { AuthProvider } from './hooks/useAuth';
 import { useEffect, useState, Suspense, lazy } from 'react';
 import { historyApi, type InterviewDetail } from './api/history';
 import type { Difficulty } from './components/UnifiedInterviewModal';
@@ -8,6 +11,8 @@ import { Loader2 } from 'lucide-react';
 import { ROUTE_PATTERNS, ROUTES } from './constants/routes';
 
 // Lazy load components
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const UploadPage = lazy(() => import('./pages/UploadPage'));
 const HistoryList = lazy(() => import('./pages/HistoryPage'));
 const ResumeDetailPage = lazy(() => import('./pages/ResumeDetailPage'));
@@ -183,11 +188,18 @@ function InterviewWrapper() {
 function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<Loading />}>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            {/* 默认重定向到简历管理页面 */}
-            <Route index element={<Navigate to="/history" replace />} />
+      <AuthProvider>
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            {/* 登录 / 注册（无需认证） */}
+            <Route path={ROUTES.login} element={<LoginPage />} />
+            <Route path={ROUTES.register} element={<RegisterPage />} />
+
+            {/* 业务页面：VITE_AUTH_REQUIRED=true 时强制登录 */}
+            <Route element={<RequireAuth />}>
+              <Route path="/" element={<Layout />}>
+                {/* 默认重定向到简历管理页面 */}
+                <Route index element={<Navigate to="/history" replace />} />
 
             {/* 上传页面 */}
             <Route path="upload" element={<UploadPageWrapper />} />
@@ -241,15 +253,18 @@ function App() {
             {/* 面试日程管理 */}
             <Route path="interview-schedule" element={<InterviewSchedulePage />} />
 
-            {/* 设置 */}
-            <Route path="settings" element={<SettingsPage />} />
+            {/* 设置（仅管理员） */}
+            <Route element={<RequireAdmin />}>
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
 
             {/* 问答助手（知识库聊天） */}
             <Route path="knowledgebase/chat" element={<KnowledgeBaseQueryPageWrapper />} />
-          </Route>
-
-        </Routes>
-      </Suspense>
+              </Route>
+            </Route>
+          </Routes>
+        </Suspense>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

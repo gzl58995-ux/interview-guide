@@ -1,6 +1,8 @@
 package interview.guide.modules.interview.service;
 
 import interview.guide.common.ai.LlmProviderRegistry;
+import interview.guide.common.auth.AuthPrincipal;
+import interview.guide.common.auth.UserContext;
 import interview.guide.infrastructure.redis.InterviewSessionCache;
 import interview.guide.infrastructure.redis.InterviewSessionCache.CachedSession;
 import interview.guide.infrastructure.redis.RedisService;
@@ -10,6 +12,7 @@ import interview.guide.modules.interview.model.InterviewQuestionDTO;
 import interview.guide.modules.interview.model.InterviewSessionDTO;
 import interview.guide.modules.interview.model.InterviewSessionDTO.SessionStatus;
 import interview.guide.modules.interview.model.InterviewSessionEntity;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,6 +58,7 @@ class InterviewSessionIdempotencyTest {
   @BeforeEach
   void setUp() {
     objectMapper = new ObjectMapper();
+    UserContext.set(new AuthPrincipal(1L, "tester", false));
     service = new InterviewSessionService(
         questionService,
         evaluationService,
@@ -72,6 +76,11 @@ class InterviewSessionIdempotencyTest {
         });
   }
 
+  @AfterEach
+  void tearDown() {
+    UserContext.clear();
+  }
+
   @Test
   @DisplayName("Redis 结果映射丢失后应从数据库恢复同一会话，不再次调用 LLM")
   void restoresExistingSessionFromDatabaseWhenRedisMappingIsMissing() {
@@ -81,10 +90,12 @@ class InterviewSessionIdempotencyTest {
     InterviewSessionEntity entity = new InterviewSessionEntity();
     entity.setSessionId(existingSessionId);
     entity.setRequestId(requestId);
+    entity.setUserId(1L);
     when(redisService.get("interview:create:result:" + requestId)).thenReturn(null);
     when(persistenceService.findByRequestId(requestId)).thenReturn(Optional.of(entity));
     CachedSession cached = new CachedSession(
         existingSessionId,
+        1L,
         "",
         null,
         null,

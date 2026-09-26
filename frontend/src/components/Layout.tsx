@@ -1,7 +1,8 @@
 import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import {motion} from 'framer-motion';
-import {BookOpen, Calendar, ChevronRight, Database, FileStack, MessageSquare, Moon, Settings, Sparkles, Sun, Users,} from 'lucide-react';
+import {BookOpen, Calendar, ChevronRight, Database, FileStack, Loader2, LogIn, LogOut, MessageSquare, Moon, Settings, Sparkles, Sun, Users,} from 'lucide-react';
 import {useTheme} from '../hooks/useTheme';
+import {useAuth} from '../hooks/useAuth';
 import {useState} from 'react';
 import UnifiedInterviewModal, {UnifiedInterviewConfig} from './UnifiedInterviewModal';
 import {ROUTES} from '../constants/routes';
@@ -24,7 +25,9 @@ export default function Layout() {
   const location = useLocation();
   const currentPath = location.pathname;
   const {theme, toggleTheme} = useTheme();
+  const {user, logout} = useAuth();
   const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
   const [interviewModalPreset, setInterviewModalPreset] = useState<{
     defaultMode: 'text' | 'voice';
     defaultResumeId?: number;
@@ -80,7 +83,20 @@ export default function Layout() {
     });
   };
 
-  // 按业务模块组织的导航项
+  const handleLogout = async () => {
+    if (loggingOut) {
+      return;
+    }
+    setLoggingOut(true);
+    try {
+      await logout();
+      navigate(ROUTES.login, {replace: true});
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  // 按业务模块组织的导航项（系统设置仅管理员可见）
   const navGroups: NavGroup[] = [
     {
       id: 'interview',
@@ -101,13 +117,13 @@ export default function Layout() {
         { id: 'chat', path: '/knowledgebase/chat', label: '问答助手', icon: MessageSquare, description: '基于知识库问答' },
       ],
     },
-    {
+    ...(user?.admin ? [{
       id: 'system',
       title: '系统',
       items: [
         { id: 'settings', path: '/settings', label: '设置', icon: Settings, description: '管理模型和语音服务' },
       ],
-    },
+    }] : []),
   ];
 
   // 判断当前页面是否匹配导航项
@@ -220,8 +236,35 @@ export default function Layout() {
           </div>
         </nav>
 
-        {/* 底部信息 */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-700">
+        {/* 底部用户信息 */}
+        <div className="p-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
+          {user ? (
+            <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-800">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                {user.username.slice(0, 1).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-800 dark:text-white truncate">{user.username}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">已登录</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                title="退出登录"
+                className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+              >
+                {loggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+              </button>
+            </div>
+          ) : (
+            <Link
+              to={ROUTES.login}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-primary-50 dark:bg-primary-900/30 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              登录 / 注册
+            </Link>
+          )}
           <div className="px-3 py-2 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-slate-800 rounded-xl">
             <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">AI 面试助手 v1.0</p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Powered by AI</p>

@@ -1,5 +1,6 @@
 package interview.guide.modules.interview.service;
 
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.constant.CommonConstants.InterviewDefaults;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
@@ -91,7 +92,9 @@ public class InterviewPersistenceService {
                                                        String interviewCategory,
                                                        String requestId) {
         try {
+            Long userId = UserContext.requireUserId();
             InterviewSessionEntity session = new InterviewSessionEntity();
+            session.setUserId(userId);
             session.setSessionId(sessionId);
             session.setRequestId(requestId);
             session.setTotalQuestions(totalQuestions);
@@ -105,10 +108,12 @@ public class InterviewPersistenceService {
             session.setKnowledgeBaseId(knowledgeBaseId);
             session.setInterviewCategory(interviewCategory);
 
-            // 简历可选：有 resumeId 则关联简历
+            // 简历可选：有 resumeId 则关联当前用户自己的简历
             if (resumeId != null) {
-                Optional<ResumeEntity> resumeOpt = resumeRepository.findById(resumeId);
-                resumeOpt.ifPresent(session::setResume);
+                ResumeEntity resume = resumeRepository.findById(resumeId)
+                    .filter(item -> userId.equals(item.getUserId()))
+                    .orElseThrow(() -> new BusinessException(ErrorCode.RESUME_NOT_FOUND, "简历不存在"));
+                session.setResume(resume);
             }
 
             InterviewSessionEntity saved = sessionRepository.save(session);
@@ -289,28 +294,44 @@ public class InterviewPersistenceService {
     }
     
     /**
-     * 根据会话ID获取会话
+     * 根据会话ID获取会话（不做归属校验，仅限异步任务等内部链路使用）
      */
     public Optional<InterviewSessionEntity> findBySessionId(String sessionId) {
         return sessionRepository.findBySessionId(sessionId);
     }
 
-    public Optional<InterviewSessionEntity> findByRequestId(String requestId) {
-        return sessionRepository.findByRequestId(requestId);
-    }
-    
     /**
-     * 获取简历的所有面试记录
+     * 根据会话ID获取当前用户的会话
      */
-    public List<InterviewSessionEntity> findByResumeId(Long resumeId) {
-        return sessionRepository.findByResumeIdOrderByCreatedAtDesc(resumeId);
+    public Optional<InterviewSessionEntity> findOwnedBySessionId(String sessionId) {
+        return sessionRepository.findBySessionIdAndUserId(sessionId, UserContext.requireUserId());
     }
 
     /**
-     * 获取所有面试记录（按创建时间倒序）
+     * 根据会话ID获取当前用户的会话，不存在或不属于当前用户时抛出业务异常
+     */
+    public InterviewSessionEntity requireOwnedBySessionId(String sessionId) {
+        return findOwnedBySessionId(sessionId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.INTERVIEW_SESSION_NOT_FOUND, "面试会话不存在"));
+    }
+
+    public Optional<InterviewSessionEntity> findByRequestId(String requestId) {
+        return sessionRepository.findByRequestIdAndUserId(requestId, UserContext.requireUserId());
+    }
+    
+    /**
+     * 获取当前用户某简历的所有面试记录
+     */
+    public List<InterviewSessionEntity> findByResumeId(Long resumeId) {
+        return sessionRepository.findByUserIdAndResumeIdOrderByCreatedAtDesc(
+            UserContext.requireUserId(), resumeId);
+    }
+
+    /**
+     * 获取当前用户的所有面试记录（按创建时间倒序）
      */
     public List<InterviewSessionEntity> findAll() {
-        return sessionRepository.findAllByOrderByCreatedAtDesc();
+        return sessionRepository.findByUserIdOrderByCreatedAtDesc(UserContext.requireUserId());
     }
     
     /**
@@ -334,24 +355,21 @@ public class InterviewPersistenceService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteSessionBySessionId(String sessionId) {
-        Optional<InterviewSessionEntity> sessionOpt = sessionRepository.findBySessionId(sessionId);
-        if (sessionOpt.isPresent()) {
-            sessionRepository.delete(sessionOpt.get());
-            log.info("已删除面试会话: sessionId={}", sessionId);
-        } else {
-            throw new BusinessException(ErrorCode.INTERVIEW_SESSION_NOT_FOUND);
-        }
+        InterviewSessionEntity session = requireOwnedBySessionId(sessionId);
+        sessionRepository.delete(session);
+        log.info("已删除面试会话: sessionId={}", sessionId);
     }
     
     /**
-     * 查找未完成的面试会话（CREATED或IN_PROGRESS状态）
+     * 查找当前用户某简历的未完成面试会话（CREATED或IN_PROGRESS状态）
      */
     public Optional<InterviewSessionEntity> findUnfinishedSession(Long resumeId) {
         List<InterviewSessionEntity.SessionStatus> unfinishedStatuses = List.of(
             InterviewSessionEntity.SessionStatus.CREATED,
             InterviewSessionEntity.SessionStatus.IN_PROGRESS
         );
-        return sessionRepository.findFirstByResumeIdAndStatusInOrderByCreatedAtDesc(resumeId, unfinishedStatuses);
+        return sessionRepository.findFirstByUserIdAndResumeIdAndStatusInOrderByCreatedAtDesc(
+            UserContext.requireUserId(), resumeId, unfinishedStatuses);
     }
     
     /**
@@ -368,11 +386,13 @@ public class InterviewPersistenceService {
      * 有 resumeId 时精确匹配 resumeId + skillId；无 resumeId 时按 skillId 查全部（通用模式兜底）。
      */
     public List<HistoricalQuestion> getHistoricalQuestions(String skillId, Long resumeId) {
+        Long userId = UserContext.requireUserId();
         List<InterviewSessionEntity> sessions;
         if (resumeId != null) {
-            sessions = sessionRepository.findTop10ByResumeIdAndSkillIdOrderByCreatedAtDesc(resumeId, skillId);
+            sessions = sessionRepository.findTop10ByUserIdAndResumeIdAndSkillIdOrderByCreatedAtDesc(
+                userId, resumeId, skillId);
         } else {
-            sessions = sessionRepository.findTop10BySkillIdOrderByCreatedAtDesc(skillId);
+            sessions = sessionRepository.findTop10ByUserIdAndSkillIdOrderByCreatedAtDesc(userId, skillId);
         }
 
         log.info("加载历史题目: skillId={}, resumeId={}, 查到 {} 个历史会话", skillId, resumeId, sessions.size());

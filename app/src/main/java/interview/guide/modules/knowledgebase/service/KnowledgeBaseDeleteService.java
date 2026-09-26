@@ -1,5 +1,6 @@
 package interview.guide.modules.knowledgebase.service;
 
+import interview.guide.common.auth.UserContext;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.common.transaction.TransactionalExecutor;
@@ -51,8 +52,9 @@ public class KnowledgeBaseDeleteService {
     }
 
     private String deleteKnowledgeBaseRecords(Long id) {
-        // 1. 获取知识库信息
-        KnowledgeBaseEntity kb = knowledgeBaseRepository.findById(id)
+        // 1. 获取知识库信息（同时校验归属）
+        KnowledgeBaseEntity kb = knowledgeBaseRepository
+            .findByIdAndUserId(id, UserContext.requireUserId())
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "知识库不存在"));
         String storageKey = kb.getStorageKey();
         

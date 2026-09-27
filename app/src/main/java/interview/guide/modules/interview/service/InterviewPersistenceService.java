@@ -301,6 +301,21 @@ public class InterviewPersistenceService {
     }
 
     /**
+     * 根据会话ID获取会话，不存在时抛出业务异常（不做归属校验，仅限管理员链路使用）
+     */
+    public InterviewSessionEntity requireBySessionId(String sessionId) {
+        return sessionRepository.findBySessionId(sessionId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.INTERVIEW_SESSION_NOT_FOUND, "面试会话不存在"));
+    }
+
+    /**
+     * 获取某简历的所有面试记录（不做归属校验，仅限管理员链路使用）
+     */
+    public List<InterviewSessionEntity> findByResumeIdForAdmin(Long resumeId) {
+        return sessionRepository.findByResumeIdOrderByCreatedAtDesc(resumeId);
+    }
+
+    /**
      * 根据会话ID获取当前用户的会话
      */
     public Optional<InterviewSessionEntity> findOwnedBySessionId(String sessionId) {

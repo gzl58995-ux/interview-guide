@@ -37,8 +37,18 @@ public class InterviewHistoryService {
      */
     @Transactional(readOnly = true)
     public InterviewDetailDTO getInterviewDetail(String sessionId) {
-        InterviewSessionEntity session = interviewPersistenceService.requireOwnedBySessionId(sessionId);
+        return buildInterviewDetail(interviewPersistenceService.requireOwnedBySessionId(sessionId));
+    }
 
+    /**
+     * 管理员视角获取面试会话详情（不做归属校验）
+     */
+    @Transactional(readOnly = true)
+    public InterviewDetailDTO getInterviewDetailForAdmin(String sessionId) {
+        return buildInterviewDetail(interviewPersistenceService.requireBySessionId(sessionId));
+    }
+
+    private InterviewDetailDTO buildInterviewDetail(InterviewSessionEntity session) {
         // 解析JSON字段
         List<Object> questions = parseJson(session.getQuestionsJson(), new TypeReference<>() {});
         List<String> strengths = parseJson(session.getStrengthsJson(), new TypeReference<>() {});
@@ -142,6 +152,18 @@ public class InterviewHistoryService {
      */
     public byte[] exportInterviewPdf(String sessionId) {
         InterviewSessionEntity session = interviewPersistenceService.requireOwnedBySessionId(sessionId);
+        return buildInterviewPdf(session, sessionId);
+    }
+
+    /**
+     * 管理员视角导出面试报告（不做归属校验）
+     */
+    public byte[] exportInterviewPdfForAdmin(String sessionId) {
+        InterviewSessionEntity session = interviewPersistenceService.requireBySessionId(sessionId);
+        return buildInterviewPdf(session, sessionId);
+    }
+
+    private byte[] buildInterviewPdf(InterviewSessionEntity session, String sessionId) {
         try {
             return pdfExportService.exportInterviewReport(session);
         } catch (Exception e) {

@@ -76,4 +76,17 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
      */
     List<InterviewSessionEntity> findTop10ByUserIdAndResumeIdAndSkillIdOrderByCreatedAtDesc(
         Long userId, Long resumeId, String skillId);
+
+    /**
+     * 批量统计多份简历的面试次数（仅限管理员链路使用）
+     * 返回 [简历ID, 面试次数]
+     */
+    @Query("SELECT s.resume.id, COUNT(s) FROM InterviewSessionEntity s "
+        + "WHERE s.resume.id IN :resumeIds GROUP BY s.resume.id")
+    List<Object[]> countByResumeIds(@Param("resumeIds") List<Long> resumeIds);
+
+    /**
+     * 统计关联简历的面试会话数（仅限管理员统计使用）
+     */
+    long countByResumeIsNotNull();
 }

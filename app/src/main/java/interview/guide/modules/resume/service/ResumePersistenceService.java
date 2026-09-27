@@ -220,6 +220,14 @@ public class ResumePersistenceService {
     }
 
     /**
+     * 根据ID获取简历，不存在时抛出业务异常（不做归属校验，仅限管理员链路使用）
+     */
+    public ResumeEntity requireById(Long id) {
+        return resumeRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(ErrorCode.RESUME_NOT_FOUND, "简历不存在"));
+    }
+
+    /**
      * 根据ID获取当前用户的简历
      */
     public Optional<ResumeEntity> findOwnedById(Long id) {

@@ -6,6 +6,7 @@ import interview.guide.infrastructure.export.PdfExportService;
 import interview.guide.infrastructure.mapper.InterviewMapper;
 import interview.guide.infrastructure.mapper.ResumeMapper;
 import interview.guide.modules.interview.model.InterviewHistoryItemDTO;
+import interview.guide.modules.interview.model.InterviewSessionEntity;
 import interview.guide.modules.interview.model.ResumeAnalysisResponse;
 import interview.guide.modules.interview.service.InterviewPersistenceService;
 import interview.guide.modules.resume.model.ResumeAnalysisEntity;
@@ -80,9 +81,20 @@ public class ResumeHistoryService {
      */
     public ResumeDetailDTO getResumeDetail(Long id) {
         ResumeEntity resume = resumePersistenceService.requireOwnedById(id);
+        return buildResumeDetail(resume, interviewPersistenceService.findByResumeId(id));
+    }
 
+    /**
+     * 管理员视角获取简历详情（不做归属校验）
+     */
+    public ResumeDetailDTO getResumeDetailForAdmin(Long id) {
+        ResumeEntity resume = resumePersistenceService.requireById(id);
+        return buildResumeDetail(resume, interviewPersistenceService.findByResumeIdForAdmin(id));
+    }
+
+    private ResumeDetailDTO buildResumeDetail(ResumeEntity resume, List<InterviewSessionEntity> interviews) {
         // 获取所有分析记录，使用 MapStruct 批量转换
-        List<ResumeAnalysisEntity> analyses = resumePersistenceService.findAnalysesByResumeId(id);
+        List<ResumeAnalysisEntity> analyses = resumePersistenceService.findAnalysesByResumeId(resume.getId());
         List<ResumeDetailDTO.AnalysisHistoryDTO> analysisHistory = resumeMapper.toAnalysisHistoryDTOList(
             analyses,
             this::extractStrengths,
@@ -90,9 +102,7 @@ public class ResumeHistoryService {
         );
 
         // 使用 InterviewMapper 转换面试历史
-        List<InterviewHistoryItemDTO> interviewHistory = interviewMapper.toInterviewHistoryList(
-            interviewPersistenceService.findByResumeId(id)
-        );
+        List<InterviewHistoryItemDTO> interviewHistory = interviewMapper.toInterviewHistoryList(interviews);
 
         return new ResumeDetailDTO(
             resume.getId(),
@@ -151,6 +161,18 @@ public class ResumeHistoryService {
      */
     public ExportResult exportAnalysisPdf(Long resumeId) {
         ResumeEntity resume = resumePersistenceService.requireOwnedById(resumeId);
+        return buildAnalysisPdf(resume, resumeId);
+    }
+
+    /**
+     * 管理员视角导出简历分析报告（不做归属校验）
+     */
+    public ExportResult exportAnalysisPdfForAdmin(Long resumeId) {
+        ResumeEntity resume = resumePersistenceService.requireById(resumeId);
+        return buildAnalysisPdf(resume, resumeId);
+    }
+
+    private ExportResult buildAnalysisPdf(ResumeEntity resume, Long resumeId) {
         Optional<ResumeAnalysisResponse> analysisOpt = resumePersistenceService.getLatestAnalysisAsDTO(resumeId);
         if (analysisOpt.isEmpty()) {
             throw new BusinessException(ErrorCode.RESUME_ANALYSIS_NOT_FOUND);

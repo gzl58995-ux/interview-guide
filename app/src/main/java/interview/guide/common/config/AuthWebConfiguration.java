@@ -11,7 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * 认证拦截器注册
  * <p>
  * 默认保护所有 {@code /api/**} 接口，只放行登录与注册；
- * 系统设置相关接口额外要求管理员身份。
+ * 系统设置、管理员页面相关接口额外要求管理员身份。
  */
 @Configuration
 @RequiredArgsConstructor
@@ -30,6 +30,6 @@ public class AuthWebConfiguration implements WebMvcConfigurer {
             );
 
         registry.addInterceptor(adminInterceptor)
-            .addPathPatterns("/api/llm-provider/**");
+            .addPathPatterns("/api/llm-provider/**", "/api/admin/**");
     }
 }

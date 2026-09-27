@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import {useLocation} from 'react-router-dom';
 import {AnimatePresence, motion} from 'framer-motion';
 import {historyApi, InterviewDetail, ResumeDetail} from '../api/history';
+import {adminApi} from '../api/admin';
 import AnalysisPanel from '../components/AnalysisPanel';
 import InterviewPanel from '../components/InterviewPanel';
 import InterviewDetailPanel from '../components/InterviewDetailPanel';
@@ -11,13 +12,15 @@ import {CheckSquare, ChevronLeft, Clock, Download, MessageSquare, Mic} from 'luc
 interface ResumeDetailPageProps {
   resumeId: number;
   onBack: () => void;
-  onStartInterview: (resumeId: number) => void;
+  onStartInterview?: (resumeId: number) => void;
+  adminView?: boolean;
 }
 
 type TabType = 'analysis' | 'interview';
 type DetailViewType = 'list' | 'interviewDetail';
 
-export default function ResumeDetailPage({ resumeId, onBack, onStartInterview }: ResumeDetailPageProps) {
+export default function ResumeDetailPage({ resumeId, onBack, onStartInterview, adminView = false }: ResumeDetailPageProps) {
+  const dataApi = adminView ? adminApi : historyApi;
   const location = useLocation();
   const [resume, setResume] = useState<ResumeDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,24 +35,24 @@ export default function ResumeDetailPage({ resumeId, onBack, onStartInterview }:
   // 静默加载数据（用于轮询）
   const loadResumeDetailSilent = useCallback(async () => {
     try {
-      const data = await historyApi.getResumeDetail(resumeId);
+      const data = await dataApi.getResumeDetail(resumeId);
       setResume(data);
     } catch (err) {
       console.error('加载简历详情失败', err);
     }
-  }, [resumeId]);
+  }, [resumeId, dataApi]);
 
   const loadResumeDetail = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await historyApi.getResumeDetail(resumeId);
+      const data = await dataApi.getResumeDetail(resumeId);
       setResume(data);
     } catch (err) {
       console.error('加载简历详情失败', err);
     } finally {
       setLoading(false);
     }
-  }, [resumeId]);
+  }, [resumeId, dataApi]);
 
   useEffect(() => {
     loadResumeDetail();
@@ -96,7 +99,7 @@ export default function ResumeDetailPage({ resumeId, onBack, onStartInterview }:
       const loadAndViewInterview = async () => {
         setLoadingInterview(true);
         try {
-          const detail = await historyApi.getInterviewDetail(viewInterview);
+          const detail = await dataApi.getInterviewDetail(viewInterview);
           setSelectedInterview(detail);
           setDetailView('interviewDetail');
         } catch (err) {
@@ -107,12 +110,12 @@ export default function ResumeDetailPage({ resumeId, onBack, onStartInterview }:
       };
       loadAndViewInterview();
     }
-  }, [location.state, resume]);
+  }, [location.state, resume, dataApi]);
 
   const handleExportAnalysisPdf = async () => {
     setExporting('analysis');
     try {
-      const blob = await historyApi.exportAnalysisPdf(resumeId);
+      const blob = await dataApi.exportAnalysisPdf(resumeId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -131,7 +134,7 @@ export default function ResumeDetailPage({ resumeId, onBack, onStartInterview }:
   const handleExportInterviewPdf = async (sessionId: string) => {
     setExporting(sessionId);
     try {
-      const blob = await historyApi.exportInterviewPdf(sessionId);
+      const blob = await dataApi.exportInterviewPdf(sessionId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -150,7 +153,7 @@ export default function ResumeDetailPage({ resumeId, onBack, onStartInterview }:
   const handleViewInterview = async (sessionId: string) => {
     setLoadingInterview(true);
     try {
-      const detail = await historyApi.getInterviewDetail(sessionId);
+      const detail = await dataApi.getInterviewDetail(sessionId);
       setSelectedInterview(detail);
       setDetailView('interviewDetail');
     } catch (err) {
@@ -269,9 +272,9 @@ export default function ResumeDetailPage({ resumeId, onBack, onStartInterview }:
               {exporting === selectedInterview.sessionId ? '导出中...' : '导出 PDF'}
             </motion.button>
           )}
-          {detailView !== 'interviewDetail' && (
+          {detailView !== 'interviewDetail' && !adminView && (
             <motion.button
-              onClick={() => onStartInterview(resumeId)}
+              onClick={() => onStartInterview?.(resumeId)}
               className="px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium shadow-lg shadow-primary-500/30 hover:shadow-xl transition-all flex items-center gap-2"
               whileHover={{ scale: 1.02, y: -1 }}
               whileTap={{ scale: 0.98 }}
@@ -337,18 +340,19 @@ export default function ResumeDetailPage({ resumeId, onBack, onStartInterview }:
                   analyzeError={resume.analyzeError}
                   onExport={handleExportAnalysisPdf}
                   exporting={exporting === 'analysis'}
-                  onReanalyze={handleReanalyze}
+                  onReanalyze={adminView ? undefined : handleReanalyze}
                   reanalyzing={reanalyzing}
                 />
               ) : (
                   <InterviewPanel
                       interviews={resume.interviews || []}
-                  onStartInterview={() => onStartInterview(resumeId)}
+                  onStartInterview={() => onStartInterview?.(resumeId)}
                   onViewInterview={handleViewInterview}
                   onExportInterview={handleExportInterviewPdf}
                   onDeleteInterview={handleDeleteInterview}
                   exporting={exporting}
                   loadingInterview={loadingInterview}
+                  readOnly={adminView}
                 />
               )}
             </motion.div>

@@ -29,6 +29,8 @@ const VoiceInterviewEvaluationPage = lazy(() => import('./pages/VoiceInterviewEv
 const InterviewSchedulePage = lazy(() => import('./pages/InterviewSchedulePage'));
 const InterviewHubPage = lazy(() => import('./pages/InterviewHubPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const AdminResumeManagePage = lazy(() => import('./pages/AdminResumeManagePage'));
 const InterviewDetailPanel = lazy(() => import('./components/InterviewDetailPanel'));
 
 // Loading component
@@ -79,6 +81,24 @@ function ResumeDetailWrapper() {
       resumeId={parseInt(resumeId, 10)}
       onBack={handleBack}
       onStartInterview={handleStartInterview}
+    />
+  );
+}
+
+// 管理员查看简历详情包装器
+function AdminResumeDetailWrapper() {
+  const { resumeId } = useParams<{ resumeId: string }>();
+  const navigate = useNavigate();
+
+  if (!resumeId) {
+    return <Navigate to={ROUTES.adminResumes} replace />;
+  }
+
+  return (
+    <ResumeDetailPage
+      resumeId={parseInt(resumeId, 10)}
+      onBack={() => navigate(ROUTES.adminResumes)}
+      adminView
     />
   );
 }
@@ -253,9 +273,14 @@ function App() {
             {/* 面试日程管理 */}
             <Route path="interview-schedule" element={<InterviewSchedulePage />} />
 
-            {/* 设置（仅管理员） */}
+            {/* 设置、管理员页面（仅管理员） */}
             <Route element={<RequireAdmin />}>
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="admin" element={<AdminPage />}>
+                <Route index element={<Navigate to={ROUTES.adminResumes} replace />} />
+                <Route path="resumes" element={<AdminResumeManagePage />} />
+                <Route path="resumes/:resumeId" element={<AdminResumeDetailWrapper />} />
+              </Route>
             </Route>
 
             {/* 问答助手（知识库聊天） */}

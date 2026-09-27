@@ -1,6 +1,6 @@
 import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import {motion} from 'framer-motion';
-import {BookOpen, Calendar, ChevronRight, Database, FileStack, Loader2, LogIn, LogOut, MessageSquare, Moon, Settings, Sparkles, Sun, Users,} from 'lucide-react';
+import {BookOpen, Calendar, ChevronRight, Database, FileStack, Loader2, LogIn, LogOut, MessageSquare, Moon, Settings, ShieldCheck, Sparkles, Sun, Users,} from 'lucide-react';
 import {useTheme} from '../hooks/useTheme';
 import {useAuth} from '../hooks/useAuth';
 import {useState} from 'react';
@@ -122,6 +122,7 @@ export default function Layout() {
       title: '系统',
       items: [
         { id: 'settings', path: '/settings', label: '设置', icon: Settings, description: '管理模型和语音服务' },
+        { id: 'admin', path: ROUTES.admin, label: '管理员页面', icon: ShieldCheck, description: '平台数据管理' },
       ],
     }] : []),
   ];

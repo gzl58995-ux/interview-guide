@@ -7,6 +7,9 @@ export const ROUTES = {
   resumeUpload: '/upload',
   resumeHistory: '/history',
   knowledgebaseUpload: '/knowledgebase/upload',
+  admin: '/admin',
+  adminResumes: '/admin/resumes',
+  adminResumeDetail: (resumeId: number) => `/admin/resumes/${resumeId}`,
 } as const;
 
 export const ROUTE_PATTERNS = {

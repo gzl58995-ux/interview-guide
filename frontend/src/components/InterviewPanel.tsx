@@ -16,6 +16,7 @@ interface InterviewPanelProps {
   onDeleteInterview: (sessionId: string) => void;
   exporting: string | null;
   loadingInterview: boolean;
+  readOnly?: boolean;
 }
 
 /**
@@ -28,7 +29,8 @@ export default function InterviewPanel({
   onExportInterview,
   onDeleteInterview,
   exporting,
-  loadingInterview
+  loadingInterview,
+  readOnly = false
 }: InterviewPanelProps) {
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ sessionId: string } | null>(null);
@@ -74,15 +76,19 @@ export default function InterviewPanel({
           <Mic className="w-8 h-8 text-slate-400" />
         </div>
           <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2">暂无面试记录</h3>
-          <p className="text-slate-500 dark:text-slate-400 mb-6">开始模拟面试，获取专业评估</p>
-        <motion.button
-          onClick={onStartInterview}
-          className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium shadow-lg shadow-primary-500/30"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          开始模拟面试
-        </motion.button>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">
+            {readOnly ? '该用户还没有进行过模拟面试' : '开始模拟面试，获取专业评估'}
+          </p>
+        {!readOnly && (
+          <motion.button
+            onClick={onStartInterview}
+            className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium shadow-lg shadow-primary-500/30"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            开始模拟面试
+          </motion.button>
+        )}
       </div>
     );
   }
@@ -166,6 +172,7 @@ export default function InterviewPanel({
               onView={() => onViewInterview(interview.sessionId)}
               onExport={() => onExportInterview(interview.sessionId)}
               onDelete={(e) => handleDeleteClick(interview.sessionId, e)}
+              readOnly={readOnly}
             />
           ))}
         </div>
@@ -209,7 +216,8 @@ function InterviewItemCard({
   deleting,
   onView,
   onExport,
-  onDelete
+  onDelete,
+  readOnly
 }: {
   interview: InterviewItem;
   index: number;
@@ -219,6 +227,7 @@ function InterviewItemCard({
   onView: () => void;
   onExport: () => void;
   onDelete: (e: React.MouseEvent) => void;
+  readOnly: boolean;
 }) {
   return (
     <motion.div
@@ -268,22 +277,24 @@ function InterviewItemCard({
       </motion.button>
 
         {/* 删除按钮 */}
-        <button
-          onClick={onDelete}
-          disabled={deleting}
-          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="删除面试记录"
-        >
-          {deleting ? (
-            <motion.div
-              className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            />
-          ) : (
-            <Trash2 className="w-5 h-5" />
-          )}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={onDelete}
+            disabled={deleting}
+            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="删除面试记录"
+          >
+            {deleting ? (
+              <motion.div
+                className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              />
+            ) : (
+              <Trash2 className="w-5 h-5" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* 箭头 */}

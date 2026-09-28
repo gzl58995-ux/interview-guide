@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, CheckCircle, Clock, FileStack, RefreshCw, RotateCw, Search, Users } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, Download, FileStack, RefreshCw, RotateCw, Search, Users } from 'lucide-react';
 import {
   adminApi,
   type AdminResumeItem,
@@ -78,6 +78,7 @@ export default function AdminResumeManagePage() {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -181,6 +182,27 @@ export default function AdminResumeManagePage() {
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
     setPage(1);
+  };
+
+  const handleDownload = async (resume: AdminResumeItem) => {
+    if (downloadingId !== null) return;
+    setDownloadingId(resume.id);
+    try {
+      const blob = await adminApi.downloadResume(resume.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = resume.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('下载简历失败', error);
+      alert(error instanceof Error ? error.message : '下载失败，请重试');
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   return (
@@ -324,6 +346,7 @@ export default function AdminResumeManagePage() {
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">AI 评分</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">面试次数</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">访问次数</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">下载文件</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -391,6 +414,22 @@ export default function AdminResumeManagePage() {
                         </span>
                       </td>
                       <td className="px-6 py-5 text-slate-500 dark:text-slate-400">{resume.accessCount}</td>
+                      <td className="px-6 py-5">
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDownload(resume);
+                          }}
+                          disabled={downloadingId !== null}
+                          title="下载原始简历文件"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-primary-500 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {downloadingId === resume.id
+                            ? <RefreshCw className="w-4 h-4 animate-spin"/>
+                            : <Download className="w-4 h-4"/>}
+                          下载
+                        </button>
+                      </td>
                     </motion.tr>
                   ))}
                 </AnimatePresence>

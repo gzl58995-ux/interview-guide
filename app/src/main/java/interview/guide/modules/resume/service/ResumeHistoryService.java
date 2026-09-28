@@ -3,6 +3,7 @@ package interview.guide.modules.resume.service;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.infrastructure.export.PdfExportService;
+import interview.guide.infrastructure.file.FileStorageService;
 import interview.guide.infrastructure.mapper.InterviewMapper;
 import interview.guide.infrastructure.mapper.ResumeMapper;
 import interview.guide.modules.interview.model.InterviewHistoryItemDTO;
@@ -39,6 +40,7 @@ public class ResumeHistoryService {
     private final ObjectMapper objectMapper;
     private final ResumeMapper resumeMapper;
     private final InterviewMapper interviewMapper;
+    private final FileStorageService fileStorageService;
 
     /**
      * 获取所有简历列表
@@ -190,8 +192,31 @@ public class ResumeHistoryService {
     }
 
     /**
+     * 管理员视角下载原始简历文件（不做归属校验）
+     */
+    public ResumeFile downloadResumeFileForAdmin(Long resumeId) {
+        ResumeEntity resume = resumePersistenceService.requireById(resumeId);
+        String storageKey = resume.getStorageKey();
+        if (storageKey == null || storageKey.isBlank()) {
+            throw new BusinessException(ErrorCode.STORAGE_DOWNLOAD_FAILED, "文件存储信息不存在");
+        }
+
+        log.info("下载简历原始文件: resumeId={}, filename={}", resumeId, resume.getOriginalFilename());
+        return new ResumeFile(
+            fileStorageService.downloadFile(storageKey),
+            resume.getOriginalFilename(),
+            resume.getContentType()
+        );
+    }
+
+    /**
      * PDF导出结果
      */
     public record ExportResult(byte[] pdfBytes, String filename) {}
+
+    /**
+     * 原始简历文件下载结果
+     */
+    public record ResumeFile(byte[] content, String filename, String contentType) {}
 }
 

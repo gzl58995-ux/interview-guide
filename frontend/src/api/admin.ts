@@ -102,6 +102,13 @@ export const adminApi = {
   },
 
   /**
+   * 下载任意用户的原始简历文件（仅管理员）
+   */
+  async downloadResume(resumeId: number): Promise<Blob> {
+    return request.download(`/api/admin/resumes/${resumeId}/download`);
+  },
+
+  /**
    * 导出任意用户的面试报告PDF（仅管理员）
    */
   async exportInterviewPdf(sessionId: string): Promise<Blob> {

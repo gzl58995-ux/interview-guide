@@ -92,6 +92,16 @@ class AdminResumeServiceTest {
     }
 
     @Test
+    @DisplayName("管理员下载简历文件委托历史服务")
+    void downloadResumeFileDelegatesToHistoryService() {
+        ResumeHistoryService.ResumeFile file =
+            new ResumeHistoryService.ResumeFile(new byte[]{1, 2}, "alice.pdf", "application/pdf");
+        when(resumeHistoryService.downloadResumeFileForAdmin(1L)).thenReturn(file);
+
+        assertThat(service.downloadResumeFile(1L)).isSameAs(file);
+    }
+
+    @Test
     @DisplayName("没有简历时返回空列表且不查询关联数据")
     void emptyWhenNoResumes() {
         when(resumeRepository.findAllByOrderByUploadedAtDesc()).thenReturn(List.of());

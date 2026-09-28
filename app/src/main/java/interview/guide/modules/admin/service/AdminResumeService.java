@@ -125,6 +125,13 @@ public class AdminResumeService {
     }
 
     /**
+     * 下载任意用户的原始简历文件（平台级，不做归属校验）
+     */
+    public ResumeHistoryService.ResumeFile downloadResumeFile(Long id) {
+        return resumeHistoryService.downloadResumeFileForAdmin(id);
+    }
+
+    /**
      * 批量转换为DTO，用户名、最新评分、面试次数均为批量查询，避免逐条访问数据库
      */
     private List<AdminResumeDTO> toDTOs(List<ResumeEntity> resumes) {

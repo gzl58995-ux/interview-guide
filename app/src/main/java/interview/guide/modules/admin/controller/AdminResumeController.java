@@ -99,4 +99,21 @@ public class AdminResumeController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    /**
+     * 下载任意用户的原始简历文件
+     */
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadResumeFile(@PathVariable Long id) {
+        var file = adminResumeService.downloadResumeFile(id);
+        String encodedFilename = URLEncoder.encode(file.filename(), StandardCharsets.UTF_8)
+            .replaceAll("\\+", "%20");
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"" + encodedFilename + "\"; filename*=UTF-8''" + encodedFilename)
+            .header(HttpHeaders.CONTENT_TYPE,
+                file.contentType() != null ? file.contentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE)
+            .body(file.content());
+    }
 }

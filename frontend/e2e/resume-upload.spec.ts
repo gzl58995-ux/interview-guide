@@ -43,9 +43,9 @@ test('批量简历保留各自分析状态，兼容历史重复响应，并按�
 });
 
 test('简历未选择求职方向时不能加入上传队列', async ({ page }) => {
-  let uploads = 0;
+  const bodies: string[] = [];
   await page.route('**/api/resumes/upload', route => {
-    uploads++;
+    bodies.push(route.request().postDataBuffer()!.toString());
     return success(route, result(1, 'COMPLETED'));
   });
   await page.goto('/upload');
@@ -60,7 +60,8 @@ test('简历未选择求职方向时不能加入上传队列', async ({ page }) 
   await expect(page.getByText('还有 1 个文件未选择求职方向')).toHaveCount(0);
   await enqueue.click();
   await expect(row(page, 'direction.txt')).toContainText('已完成');
-  expect(uploads).toBe(1);
+  expect(bodies.join('\n')).toContain('name="jobDirection"');
+  expect(bodies.join('\n')).toContain('SALES_BD');
 });
 
 test('上传期间追加共用双并发队列，上传失败可单独重试', async ({ page }) => {

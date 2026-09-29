@@ -46,7 +46,7 @@ export type BatchUploadResult = Pick<BatchUploadItem,
 /** 业务适配器保持稳定引用，上传编排无需了解简历或知识库响应结构。 */
 export interface BatchUploadAdapter {
   processLabel: string;
-  upload: (file: File, customName?: string) => Promise<BatchUploadResult>;
+  upload: (file: File, customName?: string, category?: string) => Promise<BatchUploadResult>;
   getStatus: (id: number, signal: AbortSignal) => Promise<ProcessingResult>;
   retry: (id: number) => Promise<void>;
 }

@@ -65,7 +65,7 @@ export function useBatchUpload(adapter: BatchUploadAdapter, policy: FileUploadPo
   }, [updateItem]);
 
   const uploadItem = useCallback(async (
-    item: Pick<BatchUploadItem, 'clientId' | 'file' | 'customName'>,
+    item: Pick<BatchUploadItem, 'clientId' | 'file' | 'customName' | 'category'>,
   ) => {
     updateItem(item.clientId, current => ({
       ...current,
@@ -78,6 +78,7 @@ export function useBatchUpload(adapter: BatchUploadAdapter, policy: FileUploadPo
       const result = await adapter.upload(
         item.file,
         item.customName.trim() || undefined,
+        item.category.trim() || undefined,
       );
       if (!mountedRef.current) return;
       updateItem(item.clientId, current => ({
@@ -104,6 +105,7 @@ export function useBatchUpload(adapter: BatchUploadAdapter, policy: FileUploadPo
       clientId,
       file: item.file,
       customName: item.customName,
+      category: item.category,
     }));
     if (accepted) {
       updateItem(clientId, current => ({

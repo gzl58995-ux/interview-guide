@@ -25,8 +25,8 @@ export const knowledgeBaseUploadAdapter: BatchUploadAdapter = {
 
 export const resumeUploadAdapter: BatchUploadAdapter = {
   processLabel: '分析',
-  async upload(file) {
-    const result = await resumeApi.uploadAndAnalyze(file);
+  async upload(file, _customName, jobDirection) {
+    const result = await resumeApi.uploadAndAnalyze(file, jobDirection);
     const id = result.resume?.id ?? result.storage?.resumeId;
     if (!id) throw new Error('上传结果缺少简历 ID，请重试');
     // 历史重复简历可能只返回 analysis + storage；有显式状态时以显式状态为准。

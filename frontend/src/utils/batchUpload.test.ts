@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type { BatchUploadItem } from '../types/batchUpload.ts';
 import {
   canRetryUpload,
+  countReadyItemsMissingCategory,
   KNOWLEDGE_BASE_FILE_POLICY,
   RESUME_FILE_POLICY,
   getFileIdentity,
@@ -101,6 +103,32 @@ test('上传和向量化状态、生产限制保持独立', () => {
   assert.equal(canRetryUpload({ status: 'UPLOAD_FAILED', retryAvailableAt: 3000 }, 3000), true);
 });
 
+
+test('新加入的文件默认未选择分类，等待用户选择', () => {
+  const selection = selectUploadFiles([], [file('resume.pdf')], RESUME_FILE_POLICY, 1);
+  assert.equal(selection.accepted[0]?.category, '');
+});
+
+test('只统计待提交且未选择分类的文件', () => {
+  const item = (overrides: Partial<BatchUploadItem>) => ({
+    clientId: 'client',
+    file: file('resume.pdf'),
+    customName: '',
+    category: '',
+    status: 'READY',
+    ...overrides,
+  } as BatchUploadItem);
+
+  const items = [
+    item({ clientId: 'missing' }),
+    item({ clientId: 'chosen', category: 'TECH' }),
+    item({ clientId: 'queued', status: 'QUEUED' }),
+    item({ clientId: 'uploading', status: 'UPLOADING' }),
+  ];
+
+  assert.equal(countReadyItemsMissingCategory(items), 1);
+  assert.equal(countReadyItemsMissingCategory([]), 0);
+});
 
 test('简历复用同一校验器，但保留 10MB 和自身格式限制', () => {
   assert.equal(validateUploadFile(file('resume.pdf', 10 * 1024 * 1024), RESUME_FILE_POLICY), null);

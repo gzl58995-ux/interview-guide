@@ -1,3 +1,6 @@
+// 求职方向（用于简历解析路由分类）
+export type JobDirection = 'PROCUREMENT_SUPPLY_CHAIN' | 'SALES_BD' | 'TECH';
+
 // 简历分析响应类型
 export interface ResumeAnalysisResponse {
   overallScore: number;

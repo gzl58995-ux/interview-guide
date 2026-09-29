@@ -9,11 +9,13 @@ import {
 } from 'lucide-react';
 
 import { MAX_BATCH_FILES } from '../../utils/batchUpload';
-import type { BatchUploadItem, BatchUploadStatus } from '../../types/batchUpload';
+import type { BatchUploadCategoryOption, BatchUploadItem, BatchUploadStatus } from '../../types/batchUpload';
 
 interface BatchUploadListProps {
   processLabel: string;
   customNamePlaceholder?: string;
+  categoryOptions?: readonly BatchUploadCategoryOption[];
+  categoryLabel?: string;
   items: BatchUploadItem[];
   completedCount: number;
   failedCount: number;
@@ -21,6 +23,7 @@ interface BatchUploadListProps {
   retryingProcessId: number | null;
   onClear: () => void;
   onNameChange: (clientId: string, customName: string) => void;
+  onCategoryChange: (clientId: string, category: string) => void;
   onRemove: (clientId: string) => void;
   onRetryUpload: (clientId: string) => void;
   onRetryProcessing: (clientId: string) => void;
@@ -90,6 +93,8 @@ function StatusBadge({ status, processLabel }: { status: BatchUploadStatus; proc
 export default function BatchUploadList({
   processLabel,
   customNamePlaceholder,
+  categoryOptions,
+  categoryLabel = '分类',
   items,
   completedCount,
   failedCount,
@@ -97,6 +102,7 @@ export default function BatchUploadList({
   retryingProcessId,
   onClear,
   onNameChange,
+  onCategoryChange,
   onRemove,
   onRetryUpload,
   onRetryProcessing,
@@ -158,6 +164,18 @@ export default function BatchUploadList({
                       aria-label={`${item.file.name}的名称`}
                       className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100 disabled:bg-slate-50 disabled:text-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:ring-primary-900/40 dark:disabled:bg-slate-800"
                     />}
+                    {categoryOptions && categoryOptions.length > 0 && <select
+                      value={item.category}
+                      disabled={!canEdit}
+                      onChange={event => onCategoryChange(item.clientId, event.target.value)}
+                      aria-label={`${item.file.name}的${categoryLabel}`}
+                      className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100 disabled:bg-slate-50 disabled:text-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:ring-primary-900/40 dark:disabled:bg-slate-800"
+                    >
+                      <option value="">请选择{categoryLabel}</option>
+                      {categoryOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>}
                   </div>
                 </div>
 

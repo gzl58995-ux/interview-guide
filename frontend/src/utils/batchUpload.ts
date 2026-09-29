@@ -73,12 +73,17 @@ export function selectUploadFiles(
         clientId: `${now}-${index}-${identity}`,
         file,
         customName: '',
+        category: '',
         status: 'READY',
       });
     }
   });
 
   return { accepted, rejected };
+}
+
+export function countReadyItemsMissingCategory(items: readonly BatchUploadItem[]): number {
+  return items.filter(item => item.status === 'READY' && !item.category).length;
 }
 
 export function normalizeProcessingStatus(status?: string, fallback: ProcessingStatus = 'PENDING'): ProcessingStatus {

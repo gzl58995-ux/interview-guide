@@ -8,6 +8,11 @@ const result = (id: number, analyzeStatus: string, extra = {}) => ({
   resume: { id, filename: '简历.txt', analyzeStatus },
   storage: { resumeId: id }, enqueueAccepted: true, duplicate: false, message: '', ...extra,
 });
+const selectDirections = async (page: Page, names: string[], value = 'TECH') => {
+  for (const name of names) {
+    await page.getByLabel(`${name}的求职方向`).selectOption(value);
+  }
+};
 
 test('批量简历保留各自分析状态，兼容历史重复响应，并按分析阶段重试', async ({ page }) => {
   let uploads = 0;
@@ -24,6 +29,7 @@ test('批量简历保留各自分析状态，兼容历史重复响应，并按�
   await page.goto('/upload');
   await page.locator('input[type=file]').setInputFiles([file('new.txt'), file('duplicate.txt'), file('failed.txt')]);
   await expect(page.getByRole('textbox')).toHaveCount(0);
+  await selectDirections(page, ['new.txt', 'duplicate.txt', 'failed.txt']);
   await page.getByRole('button', { name: '加入上传队列 3 个文件' }).click();
   await expect(row(page, 'new.txt')).toContainText('已完成');
   await expect(row(page, 'duplicate.txt')).toContainText('已存在');
@@ -34,6 +40,27 @@ test('批量简历保留各自分析状态，兼容历史重复响应，并按�
   await expect(page).toHaveURL(/\/upload$/);
   expect(uploads).toBe(3);
   expect(retries).toBe(1);
+});
+
+test('简历未选择求职方向时不能加入上传队列', async ({ page }) => {
+  let uploads = 0;
+  await page.route('**/api/resumes/upload', route => {
+    uploads++;
+    return success(route, result(1, 'COMPLETED'));
+  });
+  await page.goto('/upload');
+  await page.locator('input[type=file]').setInputFiles(file('direction.txt'));
+  const enqueue = page.getByRole('button', { name: '加入上传队列 1 个文件' });
+  const direction = page.getByLabel('direction.txt的求职方向');
+  await expect(direction).toHaveValue('');
+  await expect(enqueue).toBeDisabled();
+  await expect(page.getByText('还有 1 个文件未选择求职方向')).toBeVisible();
+  await direction.selectOption('SALES_BD');
+  await expect(enqueue).toBeEnabled();
+  await expect(page.getByText('还有 1 个文件未选择求职方向')).toHaveCount(0);
+  await enqueue.click();
+  await expect(row(page, 'direction.txt')).toContainText('已完成');
+  expect(uploads).toBe(1);
 });
 
 test('上传期间追加共用双并发队列，上传失败可单独重试', async ({ page }) => {
@@ -59,10 +86,12 @@ test('上传期间追加共用双并发队列，上传失败可单独重试', as
   try {
     await page.goto('/upload');
     await page.locator('input[type=file]').setInputFiles([file('first.txt'), file('retry.txt'), file('third.txt')]);
+    await selectDirections(page, ['first.txt', 'retry.txt', 'third.txt']);
     await page.getByRole('button', { name: '加入上传队列 3 个文件' }).click();
     await expect.poll(() => starts.length).toBe(2);
     await expect(row(page, 'third.txt')).toContainText('等待上传');
     await page.locator('input[type=file]').setInputFiles(file('append.txt'));
+    await selectDirections(page, ['append.txt']);
     await page.getByRole('button', { name: '加入上传队列 1 个文件' }).click();
     await expect(row(page, 'append.txt')).toContainText('等待上传');
     expect(starts.length).toBe(2);
@@ -111,6 +140,7 @@ test('慢分析查询不阻塞其他简历，失败原因来自详情接口', as
   try {
     await page.goto('/upload');
     await page.locator('input[type=file]').setInputFiles([file('slow.txt'), file('failed.txt')]);
+    await selectDirections(page, ['slow.txt', 'failed.txt']);
     await page.getByRole('button', { name: '加入上传队列 2 个文件' }).click();
     await expect(row(page, 'failed.txt')).toContainText('分析服务暂时不可用');
     await expect(row(page, 'slow.txt')).toContainText('等待分析');
@@ -137,6 +167,7 @@ test('已有历史分析时仍尊重当前处理状态，重新分析失败可�
   });
   await page.goto('/upload');
   await page.locator('input[type=file]').setInputFiles(file('history.txt'));
+  await selectDirections(page, ['history.txt']);
   await page.getByRole('button', { name: '加入上传队列 1 个文件' }).click();
   await expect(row(page, 'history.txt')).toContainText('当前分析失败');
   await row(page, 'history.txt').getByTitle('重新分析').click();

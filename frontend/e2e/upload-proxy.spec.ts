@@ -1,6 +1,6 @@
 import { createServer as createHttpServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 
 let upstream: Server;
@@ -8,6 +8,12 @@ let devServer: ViteDevServer;
 let baseURL: string;
 let forwardedHeaders: { host?: string; origin?: string };
 let rejectUploads = false;
+
+const selectResumeDirection = async (page: Page, path: string) => {
+  if (path === '/upload') {
+    await page.getByLabel(/的求职方向/).selectOption('TECH');
+  }
+};
 
 // 使用真实 Vite 代理，避免 page.route() 绕过 Host / Origin 转发和连接错误。
 test.beforeAll(async () => {
@@ -49,6 +55,7 @@ test('开发代理保留同源上传的 Host 和 Origin，避免后端误判跨�
     await page.locator('input[type=file]').setInputFiles({
       name: 'proxy-test.txt', mimeType: 'text/plain', buffer: Buffer.from('代理转发测试'),
     });
+    await selectResumeDirection(page, path);
     await page.getByRole('button', { name: '加入上传队列 1 个文件' }).click();
     await expect(page.getByText('已完成 1 个', { exact: true })).toBeVisible();
     expect(forwardedHeaders.origin).toBe(baseURL);
@@ -68,6 +75,7 @@ test('后端返回非 Result 的 403 时，两种上传页面显示拒绝原因'
       await page.locator('input[type=file]').setInputFiles({
         name: 'cors-test.txt', mimeType: 'text/plain', buffer: Buffer.from('跨域拒绝测试'),
       });
+      await selectResumeDirection(page, path);
       await page.getByRole('button', { name: '加入上传队列 1 个文件' }).click();
       await expect(page.getByText('请求被服务端拒绝（403），请检查访问权限或跨域配置', { exact: true })).toBeVisible();
     }
@@ -83,6 +91,7 @@ test('后端未启动时，两种上传页面显示服务连接失败的明确�
     await page.locator('input[type=file]').setInputFiles({
       name: 'offline-test.txt', mimeType: 'text/plain', buffer: Buffer.from('服务离线测试'),
     });
+    await selectResumeDirection(page, path);
     await page.getByRole('button', { name: '加入上传队列 1 个文件' }).click();
     await expect(page.getByText('无法连接后端服务，请确认后端已启动后重试', { exact: true })).toBeVisible();
   }

@@ -238,5 +238,11 @@ export function useBatchUpload(adapter: BatchUploadAdapter, policy: FileUploadPo
         ? { ...item, customName }
         : item,
     ),
+    updateCategory: (clientId: string, category: string) => updateItem(
+      clientId,
+      item => ['READY', 'UPLOAD_FAILED'].includes(item.status)
+        ? { ...item, category }
+        : item,
+    ),
   };
 }

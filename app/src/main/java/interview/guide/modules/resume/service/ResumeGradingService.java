@@ -9,13 +9,9 @@ import interview.guide.modules.interview.model.ResumeAnalysisResponse.Suggestion
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.converter.BeanOutputConverter;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +19,7 @@ import java.util.Map;
 /**
  * 简历评分服务
  * 使用Spring AI调用LLM对简历进行评分和建议
+ * 提示词按求职方向从 ResumePromptRegistry 动态解析
  */
 @Service
 public class ResumeGradingService {
@@ -30,10 +27,9 @@ public class ResumeGradingService {
     private static final Logger log = LoggerFactory.getLogger(ResumeGradingService.class);
     
     private final LlmProviderRegistry llmProviderRegistry;
-    private final PromptTemplate systemPromptTemplate;
-    private final PromptTemplate userPromptTemplate;
-    private final BeanOutputConverter<ResumeAnalysisResponseDTO> outputConverter;
     private final StructuredOutputInvoker structuredOutputInvoker;
+    private final ResumePromptRegistry promptRegistry;
+    private final BeanOutputConverter<ResumeAnalysisResponseDTO> outputConverter;
     
     // 中间DTO用于接收AI响应
     private record ResumeAnalysisResponseDTO(
@@ -62,37 +58,31 @@ public class ResumeGradingService {
     public ResumeGradingService(
             LlmProviderRegistry llmProviderRegistry,
             StructuredOutputInvoker structuredOutputInvoker,
-            ResumeAnalysisProperties properties,
-            ResourceLoader resourceLoader) throws IOException {
+            ResumePromptRegistry promptRegistry) {
         this.llmProviderRegistry = llmProviderRegistry;
         this.structuredOutputInvoker = structuredOutputInvoker;
-        this.systemPromptTemplate = new PromptTemplate(
-            resourceLoader.getResource(properties.getSystemPromptPath())
-                .getContentAsString(StandardCharsets.UTF_8)
-        );
-        this.userPromptTemplate = new PromptTemplate(
-            resourceLoader.getResource(properties.getUserPromptPath())
-                .getContentAsString(StandardCharsets.UTF_8)
-        );
+        this.promptRegistry = promptRegistry;
         this.outputConverter = new BeanOutputConverter<>(ResumeAnalysisResponseDTO.class);
     }
     
     /**
-     * 分析简历并返回评分和建议
+     * 按求职方向分析简历并返回评分和建议
      * 
      * @param resumeText 简历文本内容
+     * @param jobDirection 求职方向（空值回退默认方向，未注册方向抛业务异常）
      * @return 分析结果
      */
-    public ResumeAnalysisResponse analyzeResume(String resumeText) {
-        log.info("开始分析简历，文本长度: {} 字符", resumeText.length());
+    public ResumeAnalysisResponse analyzeResume(String resumeText, String jobDirection) {
+        ResumePromptRegistry.ResumePrompts prompts = promptRegistry.resolve(jobDirection);
+        log.info("开始分析简历，方向: {}, 文本长度: {} 字符", prompts.direction(), resumeText.length());
 
-        // 加载系统提示词
-        String systemPrompt = systemPromptTemplate.render();
+        // 加载该方向的系统提示词
+        String systemPrompt = prompts.systemPrompt().render();
 
-        // 加载用户提示词并填充变量
+        // 加载该方向的用户提示词并填充变量
         Map<String, Object> variables = new HashMap<>();
         variables.put("resumeText", resumeText);
-        String userPrompt = userPromptTemplate.render(variables);
+        String userPrompt = prompts.userPrompt().render(variables);
 
         // 添加格式指令到系统提示词
         String systemPromptWithFormat = systemPrompt + "\n\n" + outputConverter.getFormat();

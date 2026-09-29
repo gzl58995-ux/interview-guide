@@ -161,7 +161,7 @@ public class AnalyzeStreamConsumer extends AbstractStreamConsumer<AnalyzeStreamC
             persistenceService.updateResumeText(resumeId, resumeText);
         }
 
-        ResumeAnalysisResponse analysis = gradingService.analyzeResume(resumeText);
+        ResumeAnalysisResponse analysis = gradingService.analyzeResume(resumeText, resume.getJobDirection());
         // LLM 分析完成心跳（单次外部调用，无循环；分析超时必须小于 PROCESSING 阈值）
         heartbeat(payload);
         ResumeEntity latestResume = resumeRepository.findById(resumeId).orElse(null);

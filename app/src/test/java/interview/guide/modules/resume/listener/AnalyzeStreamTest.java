@@ -73,6 +73,7 @@ class AnalyzeStreamTest {
     resume.setResumeText(resumeText);
     resume.setStorageKey(storageKey);
     resume.setOriginalFilename(filename);
+    resume.setJobDirection("TECH");
     return resume;
   }
 
@@ -128,7 +129,7 @@ class AnalyzeStreamTest {
     void shouldAnalyzeFromDatabaseText() {
       when(resumeRepository.findById(5L))
           .thenReturn(Optional.of(resume("数据库中的简历正文", "resume/5", "a.pdf")));
-      when(gradingService.analyzeResume("数据库中的简历正文")).thenReturn(analysis());
+      when(gradingService.analyzeResume("数据库中的简历正文", "TECH")).thenReturn(analysis());
       when(resumeRepository.heartbeatAnalyzeProcessing(
           org.mockito.ArgumentMatchers.eq(5L),
           org.mockito.ArgumentMatchers.eq("attempt-1"), any())).thenReturn(1);
@@ -147,7 +148,7 @@ class AnalyzeStreamTest {
       when(resumeRepository.findById(5L))
           .thenReturn(Optional.of(resume(null, "resume/5", "a.pdf")));
       when(parseService.downloadAndParseContent("resume/5", "a.pdf")).thenReturn("恢复的简历正文");
-      when(gradingService.analyzeResume("恢复的简历正文")).thenReturn(analysis());
+      when(gradingService.analyzeResume("恢复的简历正文", "TECH")).thenReturn(analysis());
       when(resumeRepository.heartbeatAnalyzeProcessing(
           org.mockito.ArgumentMatchers.eq(5L),
           org.mockito.ArgumentMatchers.eq("attempt-1"), any())).thenReturn(1);
@@ -174,7 +175,23 @@ class AnalyzeStreamTest {
       assertThatThrownBy(() -> consumer.processBusiness(payload()))
           .isInstanceOf(BusinessException.class)
           .hasMessageContaining("无法获取简历文本内容");
-      verify(gradingService, never()).analyzeResume(anyString());
+      verify(gradingService, never()).analyzeResume(anyString(), any());
+    }
+
+    @Test
+    @DisplayName("使用实体中保存的求职方向调用评分")
+    void shouldPassStoredDirectionToGrading() {
+      ResumeEntity entity = resume("数据库中的简历正文", "resume/5", "a.pdf");
+      entity.setJobDirection("SALES_BD");
+      when(resumeRepository.findById(5L)).thenReturn(Optional.of(entity));
+      when(gradingService.analyzeResume("数据库中的简历正文", "SALES_BD")).thenReturn(analysis());
+      when(resumeRepository.heartbeatAnalyzeProcessing(
+          org.mockito.ArgumentMatchers.eq(5L),
+          org.mockito.ArgumentMatchers.eq("attempt-1"), any())).thenReturn(1);
+
+      consumer.processBusiness(payload());
+
+      verify(gradingService).analyzeResume("数据库中的简历正文", "SALES_BD");
     }
 
     @Test
@@ -184,7 +201,7 @@ class AnalyzeStreamTest {
 
       consumer.processBusiness(payload());
 
-      verify(gradingService, never()).analyzeResume(anyString());
+      verify(gradingService, never()).analyzeResume(anyString(), any());
     }
 
     @Test
@@ -194,7 +211,7 @@ class AnalyzeStreamTest {
           .thenReturn(Optional.of(resume("数据库中的简历正文", "resume/5", "a.pdf")));
       when(resumeRepository.tryMarkAnalyzeProcessing(
           org.mockito.ArgumentMatchers.eq(5L), anyString(), any())).thenReturn(1);
-      when(gradingService.analyzeResume("数据库中的简历正文"))
+      when(gradingService.analyzeResume("数据库中的简历正文", "TECH"))
           .thenThrow(new BusinessException(ErrorCode.RESUME_ANALYSIS_FAILED, "AI 分析失败：请稍后重试"));
 
       invokeProcessMessage(consumer, Map.of("resumeId", "5", "retryCount", "3"));

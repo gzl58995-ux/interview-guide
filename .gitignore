@@ -29,3 +29,5 @@ frontend/test-results/
 frontend/playwright-report/
 /.agents
 skills-lock.json
+.temp/
+项目树状时序图/

@@ -216,6 +216,20 @@ app:
       - application/vnd.openxmlformats-officedocument.wordprocessingml.document
       - text/plain
 
+    # 简历解析方向路由：新增方向 = 注册一条路由 + 新增目录下的 system.st / user.st
+    analysis:
+      default-direction: ${APP_RESUME_ANALYSIS_DEFAULT_DIRECTION:TECH}
+      prompt-routes:
+        TECH:
+          system-prompt-path: classpath:prompts/resume-analysis/tech/system.st
+          user-prompt-path: classpath:prompts/resume-analysis/tech/user.st
+        PROCUREMENT_SUPPLY_CHAIN:
+          system-prompt-path: classpath:prompts/resume-analysis/procurement-supply-chain/system.st
+          user-prompt-path: classpath:prompts/resume-analysis/procurement-supply-chain/user.st
+        SALES_BD:
+          system-prompt-path: classpath:prompts/resume-analysis/sales-bd/system.st
+          user-prompt-path: classpath:prompts/resume-analysis/sales-bd/user.st
+
   # RustFS (S3兼容) 存储配置
   storage:
     endpoint: ${APP_STORAGE_ENDPOINT:http://localhost:9000}

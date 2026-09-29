@@ -69,7 +69,7 @@ public class ResumePersistenceService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ResumeEntity saveResume(MultipartFile file, String resumeText,
-                                   String storageKey, String storageUrl) {
+                                   String storageKey, String storageUrl, String jobDirection) {
         try {
             String fileHash = fileHashService.calculateHash(file);
             
@@ -79,6 +79,7 @@ public class ResumePersistenceService {
             resume.setOriginalFilename(file.getOriginalFilename());
             resume.setFileSize(file.getSize());
             resume.setContentType(file.getContentType());
+            resume.setJobDirection(jobDirection);
             resume.setStorageKey(storageKey);
             resume.setStorageUrl(storageUrl);
             resume.setResumeText(resumeText);

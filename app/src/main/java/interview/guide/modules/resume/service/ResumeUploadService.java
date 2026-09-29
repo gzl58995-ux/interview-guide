@@ -36,6 +36,7 @@ public class ResumeUploadService {
     private final AnalyzeStreamProducer analyzeStreamProducer;
     private final ResumeRepository resumeRepository;
     private final TransactionalExecutor transactionalExecutor;
+    private final ResumePromptRegistry promptRegistry;
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -43,9 +44,12 @@ public class ResumeUploadService {
      * 上传并分析简历（异步）
      *
      * @param file 简历文件
+     * @param jobDirection 求职方向代码（可空，空值回退默认方向；未注册方向直接拒绝）
      * @return 上传结果（分析将异步进行）
      */
-    public Map<String, Object> uploadAndAnalyze(org.springframework.web.multipart.MultipartFile file) {
+    public Map<String, Object> uploadAndAnalyze(org.springframework.web.multipart.MultipartFile file, String jobDirection) {
+        // 方向先校验：未注册方向直接拒绝，不产生文件解析与存储副作用
+        String direction = promptRegistry.normalizeDirection(jobDirection);
         long startTime = System.currentTimeMillis();
 
         // 1. 验证文件
@@ -87,7 +91,7 @@ public class ResumeUploadService {
         // 6. 保存简历到数据库（状态为 PENDING）；失败时按 fileKey 补偿删除孤儿对象（简历是先解析再上传，补偿只包在 S3 成功之后）
         ResumeEntity savedResume;
         try {
-            savedResume = persistenceService.saveResume(file, resumeText, fileKey, fileUrl);
+            savedResume = persistenceService.saveResume(file, resumeText, fileKey, fileUrl, direction);
         } catch (Exception dbError) {
             try {
                 storageService.deleteResume(fileKey);

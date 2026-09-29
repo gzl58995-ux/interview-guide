@@ -36,7 +36,11 @@ public class ResumeEntity {
     
     // 文件类型
     private String contentType;
-    
+
+    // 求职方向（提示词路由键，默认 TECH）
+    @Column(name = "job_direction", nullable = false, length = 64)
+    private String jobDirection = "TECH";
+
     // RustFS存储的文件Key
     @Column(length = 500)
     private String storageKey;
@@ -140,6 +144,14 @@ public class ResumeEntity {
     
     public void setContentType(String contentType) {
         this.contentType = contentType;
+    }
+
+    public String getJobDirection() {
+        return jobDirection;
+    }
+
+    public void setJobDirection(String jobDirection) {
+        this.jobDirection = jobDirection;
     }
     
     public String getStorageKey() {

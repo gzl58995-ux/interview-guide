@@ -27,6 +27,7 @@ CREATE TABLE resumes (
   content_type VARCHAR(255),
   file_hash VARCHAR(64) NOT NULL,
   file_size BIGINT,
+  job_direction VARCHAR(64) NOT NULL DEFAULT 'TECH',
   last_accessed_at TIMESTAMP(6),
   original_filename VARCHAR(255) NOT NULL,
   resume_text TEXT,

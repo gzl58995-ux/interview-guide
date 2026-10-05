@@ -10,6 +10,7 @@ export const ROUTES = {
   admin: '/admin',
   adminResumes: '/admin/resumes',
   adminResumeDetail: (resumeId: number) => `/admin/resumes/${resumeId}`,
+  adminFeedback: '/admin/feedback',
 } as const;
 
 export const ROUTE_PATTERNS = {

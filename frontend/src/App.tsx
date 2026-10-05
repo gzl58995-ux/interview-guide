@@ -31,6 +31,7 @@ const InterviewHubPage = lazy(() => import('./pages/InterviewHubPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const AdminResumeManagePage = lazy(() => import('./pages/AdminResumeManagePage'));
+const AdminFeedbackManagePage = lazy(() => import('./pages/AdminFeedbackManagePage'));
 const InterviewDetailPanel = lazy(() => import('./components/InterviewDetailPanel'));
 
 // Loading component
@@ -280,6 +281,7 @@ function App() {
                 <Route index element={<Navigate to={ROUTES.adminResumes} replace />} />
                 <Route path="resumes" element={<AdminResumeManagePage />} />
                 <Route path="resumes/:resumeId" element={<AdminResumeDetailWrapper />} />
+                <Route path="feedback" element={<AdminFeedbackManagePage />} />
               </Route>
             </Route>
 

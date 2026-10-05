@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FileStack, ShieldCheck } from 'lucide-react';
+import { FileStack, MessageSquare, ShieldCheck } from 'lucide-react';
 import { ROUTES } from '../constants/routes';
 
 interface AdminTab {
@@ -13,6 +13,7 @@ interface AdminTab {
 
 const adminTabs: AdminTab[] = [
   { id: 'resumes', path: ROUTES.adminResumes, label: '简历管理', icon: FileStack },
+  { id: 'feedback', path: ROUTES.adminFeedback, label: '用户反馈', icon: MessageSquare },
 ];
 
 export default function AdminPage() {

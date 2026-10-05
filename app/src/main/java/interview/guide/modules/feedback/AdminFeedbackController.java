@@ -4,14 +4,19 @@ import interview.guide.common.result.PageResult;
 import interview.guide.common.result.Result;
 import interview.guide.modules.feedback.model.AdminFeedbackQueryRequest;
 import interview.guide.modules.feedback.model.FeedbackDTO;
+import interview.guide.modules.feedback.model.FeedbackStatus;
 import interview.guide.modules.feedback.service.AdminFeedbackService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -33,5 +38,22 @@ public class AdminFeedbackController {
     @GetMapping
     public Result<PageResult<FeedbackDTO>> query(@Valid @ModelAttribute AdminFeedbackQueryRequest query) {
         return Result.success(adminFeedbackService.query(query));
+    }
+
+    /**
+     * 更新反馈处理状态
+     */
+    @PatchMapping("/{id}/status")
+    public Result<FeedbackDTO> updateStatus(@PathVariable Long id, @RequestParam FeedbackStatus status) {
+        return Result.success(adminFeedbackService.updateStatus(id, status));
+    }
+
+    /**
+     * 删除反馈
+     */
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        adminFeedbackService.delete(id);
+        return Result.success(null);
     }
 }

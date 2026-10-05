@@ -89,7 +89,10 @@ public enum ErrorCode {
     USERNAME_OR_PASSWORD_INCORRECT(12002, "用户名或密码错误"),
     USER_NOT_FOUND(12003, "用户不存在"),
     TOKEN_INVALID(12004, "登录状态无效，请重新登录"),
-    TOKEN_EXPIRED(12005, "登录已过期，请重新登录");
+    TOKEN_EXPIRED(12005, "登录已过期，请重新登录"),
+
+    // ========== 用户反馈模块错误 13xxx ==========
+    FEEDBACK_NOT_FOUND(13001, "留言不存在");
 
     private final Integer code;
     private final String message;

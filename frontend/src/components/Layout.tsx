@@ -1,10 +1,11 @@
 import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import {motion} from 'framer-motion';
-import {BookOpen, Calendar, ChevronRight, Database, FileStack, Loader2, LogIn, LogOut, MessageSquare, Moon, Settings, ShieldCheck, Sparkles, Sun, Users,} from 'lucide-react';
+import {BookOpen, Calendar, ChevronRight, Database, FileStack, Loader2, LogIn, LogOut, MessageSquare, MessageSquarePlus, Moon, Settings, ShieldCheck, Sparkles, Sun, Users,} from 'lucide-react';
 import {useTheme} from '../hooks/useTheme';
 import {useAuth} from '../hooks/useAuth';
 import {useState} from 'react';
 import UnifiedInterviewModal, {UnifiedInterviewConfig} from './UnifiedInterviewModal';
+import FeedbackModal from './FeedbackModal';
 import {ROUTES} from '../constants/routes';
 
 interface NavItem {
@@ -28,6 +29,7 @@ export default function Layout() {
   const {user, logout} = useAuth();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [interviewModalPreset, setInterviewModalPreset] = useState<{
     defaultMode: 'text' | 'voice';
     defaultResumeId?: number;
@@ -239,6 +241,13 @@ export default function Layout() {
 
         {/* 底部用户信息 */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          >
+            <MessageSquarePlus className="w-4 h-4" />
+            意见反馈
+          </button>
           {user ? (
             <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-800">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
@@ -298,6 +307,9 @@ export default function Layout() {
         subtitle={interviewModalPreset?.subtitle || '选择面试模式和主题，快速开始'}
         startButtonText={interviewModalPreset?.startButtonText || '开始面试'}
       />
+
+      {/* 意见反馈弹窗 */}
+      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

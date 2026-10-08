@@ -14,6 +14,7 @@ public class CreateSessionRequest {
     private String skillId;  // 模板 ID，如 "java-backend", "bytedance-backend" 等
     private String difficulty; // "junior", "mid", "senior"
     private String customJdText;
+    private String jobDirection; // 求职方向：TECH / SALES_BD / PROCUREMENT_SUPPLY_CHAIN，空则回退简历方向或默认 TECH
     private Long resumeId;
 
     @Builder.Default

@@ -62,6 +62,9 @@ class VoiceInterviewEvaluationRecoveryTest {
     private LlmProviderRegistry llmProviderRegistry;
 
     @Mock
+    private VoiceJobDirectionPromptRegistry jobDirectionPromptRegistry;
+
+    @Mock
     private RBucket<VoiceInterviewSessionEntity> sessionBucket;
 
     private VoiceInterviewService voiceInterviewService;
@@ -76,7 +79,8 @@ class VoiceInterviewEvaluationRecoveryTest {
             redissonClient,
             properties,
             voiceEvaluateStreamProducer,
-            llmProviderRegistry
+            llmProviderRegistry,
+            jobDirectionPromptRegistry
         );
         lenient().when(redissonClient.<VoiceInterviewSessionEntity>getBucket(anyString()))
             .thenReturn(sessionBucket);

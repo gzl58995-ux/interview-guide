@@ -6,6 +6,7 @@ import interview.guide.common.constant.CommonConstants.InterviewDefaults;
 import interview.guide.common.exception.BusinessException;
 import interview.guide.common.exception.ErrorCode;
 import interview.guide.common.model.AsyncTaskStatus;
+import interview.guide.modules.resume.model.ResumeEntity;
 import interview.guide.modules.resume.repository.ResumeRepository;
 import interview.guide.modules.voiceinterview.config.VoiceInterviewProperties;
 import interview.guide.modules.voiceinterview.dto.CreateSessionRequest;
@@ -58,6 +59,7 @@ public class VoiceInterviewService {
     private final VoiceInterviewProperties properties;
     private final VoiceEvaluateStreamProducer voiceEvaluateStreamProducer;
     private final LlmProviderRegistry llmProviderRegistry;
+    private final VoiceJobDirectionPromptRegistry jobDirectionPromptRegistry;
 
     private static final String SESSION_CACHE_KEY_PREFIX = "voice:interview:session:";
     private static final int CACHE_TTL_HOURS = 1;
@@ -80,9 +82,10 @@ public class VoiceInterviewService {
             : null;
 
         // 关联简历必须是当前用户自己的，避免面试过程读取他人简历正文
+        ResumeEntity resume = null;
         if (request.getResumeId() != null) {
-            resumeRepository.findById(request.getResumeId())
-                .filter(resume -> userId.equals(resume.getUserId()))
+            resume = resumeRepository.findById(request.getResumeId())
+                .filter(item -> userId.equals(item.getUserId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "简历不存在"));
         }
 
@@ -92,6 +95,7 @@ public class VoiceInterviewService {
                 .skillId(effectiveSkillId)
                 .difficulty(request.getDifficulty() != null ? request.getDifficulty() : InterviewDefaults.DIFFICULTY)
                 .customJdText(request.getCustomJdText())
+                .jobDirection(resolveJobDirection(request, resume))
                 .resumeId(request.getResumeId())
                 .introEnabled(request.getIntroEnabled())
                 .techEnabled(request.getTechEnabled())
@@ -623,6 +627,19 @@ public class VoiceInterviewService {
         if (request.getProjectEnabled()) return VoiceInterviewSessionEntity.InterviewPhase.PROJECT;
         if (request.getHrEnabled()) return VoiceInterviewSessionEntity.InterviewPhase.HR;
         return VoiceInterviewSessionEntity.InterviewPhase.COMPLETED;
+    }
+
+    /**
+     * 求职方向优先级：请求显式值 -> 所选简历的方向 -> 默认方向
+     */
+    private String resolveJobDirection(CreateSessionRequest request, ResumeEntity resume) {
+        if (request.getJobDirection() != null && !request.getJobDirection().isBlank()) {
+            return jobDirectionPromptRegistry.normalizeDirection(request.getJobDirection());
+        }
+        if (resume != null) {
+            return jobDirectionPromptRegistry.normalizeDirection(resume.getJobDirection());
+        }
+        return jobDirectionPromptRegistry.normalizeDirection(null);
     }
 
     /**

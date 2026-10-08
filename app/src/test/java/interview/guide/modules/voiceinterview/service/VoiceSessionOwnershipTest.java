@@ -56,6 +56,8 @@ class VoiceSessionOwnershipTest {
     @Mock
     private LlmProviderRegistry llmProviderRegistry;
     @Mock
+    private VoiceJobDirectionPromptRegistry jobDirectionPromptRegistry;
+    @Mock
     private RBucket<VoiceInterviewSessionEntity> sessionBucket;
 
     private VoiceInterviewService service;
@@ -64,7 +66,8 @@ class VoiceSessionOwnershipTest {
     void setUp() {
         UserContext.set(new AuthPrincipal(1L, "alice", false));
         service = new VoiceInterviewService(sessionRepository, messageRepository, evaluationRepository,
-            resumeRepository, redissonClient, properties, voiceEvaluateStreamProducer, llmProviderRegistry);
+            resumeRepository, redissonClient, properties, voiceEvaluateStreamProducer, llmProviderRegistry,
+            jobDirectionPromptRegistry);
         lenient().when(redissonClient.<VoiceInterviewSessionEntity>getBucket(anyString()))
             .thenReturn(sessionBucket);
     }

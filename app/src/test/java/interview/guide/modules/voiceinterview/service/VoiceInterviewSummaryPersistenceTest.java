@@ -45,6 +45,8 @@ class VoiceInterviewSummaryPersistenceTest {
   private VoiceEvaluateStreamProducer evaluateStreamProducer;
   @Mock
   private LlmProviderRegistry llmProviderRegistry;
+  @Mock
+  private VoiceJobDirectionPromptRegistry jobDirectionPromptRegistry;
 
   private VoiceInterviewService service;
 
@@ -58,7 +60,8 @@ class VoiceInterviewSummaryPersistenceTest {
         redissonClient,
         properties,
         evaluateStreamProducer,
-        llmProviderRegistry
+        llmProviderRegistry,
+        jobDirectionPromptRegistry
     );
   }
 

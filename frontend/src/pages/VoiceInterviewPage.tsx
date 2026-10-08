@@ -16,6 +16,7 @@ import {
 type VoiceConfig = {
   skillId: string;
   difficulty?: string;
+  jobDirection?: string;
   techEnabled: boolean;
   projectEnabled: boolean;
   hrEnabled: boolean;
@@ -531,6 +532,7 @@ export default function VoiceInterviewPage() {
   const handlePhaseConfig = useCallback(async (config: {
     skillId: string;
     difficulty?: string;
+    jobDirection?: string;
     techEnabled: boolean;
     projectEnabled: boolean;
     hrEnabled: boolean;
@@ -546,6 +548,7 @@ export default function VoiceInterviewPage() {
       const session = await voiceInterviewApi.createSession({
         skillId: config.skillId,
         difficulty: config.difficulty,
+        jobDirection: config.jobDirection,
         introEnabled: false,
         techEnabled: config.techEnabled,
         projectEnabled: config.projectEnabled,
@@ -635,6 +638,7 @@ export default function VoiceInterviewPage() {
       handlePhaseConfig({
         skillId: presetVoiceConfig.skillId,
         difficulty: presetVoiceConfig.difficulty,
+        jobDirection: presetVoiceConfig.jobDirection,
         techEnabled: presetVoiceConfig.techEnabled,
         projectEnabled: presetVoiceConfig.projectEnabled,
         hrEnabled: presetVoiceConfig.hrEnabled,

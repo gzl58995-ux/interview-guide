@@ -19,6 +19,7 @@ import {
   DIFFICULTY_OPTIONS,
 } from '../hooks/useInterviewConfig';
 import {ROUTES} from '../constants/routes';
+import { JOB_DIRECTION_OPTIONS } from '../constants/jobDirections';
 
 // 统一的面试记录项
 interface RecentInterviewItem {
@@ -119,6 +120,7 @@ export default function InterviewHubPage() {
           voiceConfig: {
             skillId: config.skillId,
             difficulty: config.difficulty,
+            jobDirection: config.jobDirection,
             techEnabled: true,
             projectEnabled: true,
             hrEnabled: true,
@@ -266,6 +268,38 @@ export default function InterviewHubPage() {
             )}
           </div>
 
+          {/* 求职方向（仅语音面试） */}
+          {config.mode === 'voice' && (
+            <div>
+              <label className="flex items-center gap-2 mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                求职方向
+              </label>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">
+                影响面试官的提问侧重与风格；选择简历时会自动带入简历上的求职方向
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {JOB_DIRECTION_OPTIONS.map(opt => {
+                  const selected = config.jobDirection === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => config.setJobDirection(opt.value)}
+                      className={`py-3 px-4 rounded-xl border-2 transition-all duration-200 text-center
+                        ${selected
+                          ? 'border-primary-500 bg-primary-50/80 dark:bg-primary-900/20'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
+                        }`}
+                    >
+                      <p className={`text-sm font-semibold ${selected ? 'text-primary-700 dark:text-primary-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                        {opt.label}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* 自定义 JD 输入 */}
           <AnimatePresence>
             {config.isCustomSkill && (
@@ -375,7 +409,7 @@ export default function InterviewHubPage() {
                   </div>
                   <select
                     value={config.resumeId || ''}
-                    onChange={e => config.setResumeId(e.target.value ? parseInt(e.target.value) : undefined)}
+                    onChange={e => config.selectResume(e.target.value ? parseInt(e.target.value) : undefined)}
                     className="w-full px-4 py-2.5 rounded-lg border border-primary-200 dark:border-primary-700/50
                       bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white
                       focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-shadow"

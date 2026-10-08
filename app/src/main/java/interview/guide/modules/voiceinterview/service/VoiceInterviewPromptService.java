@@ -10,9 +10,12 @@ import org.springframework.stereotype.Service;
 public class VoiceInterviewPromptService {
 
     private final PromptSanitizer promptSanitizer;
+    private final VoiceJobDirectionPromptRegistry jobDirectionPromptRegistry;
 
-    public VoiceInterviewPromptService(PromptSanitizer promptSanitizer) {
+    public VoiceInterviewPromptService(PromptSanitizer promptSanitizer,
+                                       VoiceJobDirectionPromptRegistry jobDirectionPromptRegistry) {
         this.promptSanitizer = promptSanitizer;
+        this.jobDirectionPromptRegistry = jobDirectionPromptRegistry;
     }
 
     private static final String VOICE_RESPONSE_CONSTRAINTS = """
@@ -31,7 +34,7 @@ public class VoiceInterviewPromptService {
             工具输出包含完整的面试官角色和出题规则，后续对话应基于该角色进行。
             """;
 
-    public String generateSystemPromptWithContext(String skillId, String resumeText) {
+    public String generateSystemPromptWithContext(String skillId, String jobDirection, String resumeText) {
         StringBuilder prompt = new StringBuilder();
 
         if (skillId != null && !skillId.isBlank()) {
@@ -39,6 +42,11 @@ public class VoiceInterviewPromptService {
         }
 
         prompt.append("\n\n").append(VOICE_RESPONSE_CONSTRAINTS);
+
+        String directionStrategy = jobDirectionPromptRegistry.strategy(jobDirection);
+        if (directionStrategy != null && !directionStrategy.isBlank()) {
+            prompt.append("\n\n").append(directionStrategy);
+        }
 
         if (resumeText != null && !resumeText.isEmpty()) {
             String safeResume = promptSanitizer.sanitize(resumeText);

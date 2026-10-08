@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -90,7 +92,7 @@ class DashscopeLlmServiceTest {
     ChatClient.CallResponseSpec callResponse = mock(ChatClient.CallResponseSpec.class);
     ChatResponse chatResponse = mock(ChatResponse.class);
     Generation generation = mock(Generation.class);
-    when(promptService.generateSystemPromptWithContext(anyString(), isNull()))
+    when(promptService.generateSystemPromptWithContext(anyString(), anyString(), isNull()))
         .thenReturn("系统提示");
     when(llmProviderRegistry.getVoiceChatClient("dashscope")).thenReturn(chatClient);
     when(chatClient.prompt()).thenReturn(requestSpec);
@@ -111,5 +113,34 @@ class DashscopeLlmServiceTest {
     ILoggingEvent replyEvent = findEvent(Level.INFO, "replyLength");
     assertThat(replyEvent).isNotNull();
     assertThat(replyEvent.getFormattedMessage()).contains("replyLength=" + replyMarker.length());
+  }
+
+  @Test
+  @DisplayName("每轮对话把会话上的求职方向传给提示词组装")
+  void passesSessionJobDirectionToPromptService() {
+    ChatClient chatClient = mock(ChatClient.class);
+    ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
+    ChatClient.CallResponseSpec callResponse = mock(ChatClient.CallResponseSpec.class);
+    ChatResponse chatResponse = mock(ChatResponse.class);
+    Generation generation = mock(Generation.class);
+    when(promptService.generateSystemPromptWithContext(anyString(), anyString(), isNull()))
+        .thenReturn("系统提示");
+    when(llmProviderRegistry.getVoiceChatClient("dashscope")).thenReturn(chatClient);
+    when(chatClient.prompt()).thenReturn(requestSpec);
+    when(requestSpec.system(anyString())).thenReturn(requestSpec);
+    when(requestSpec.user(anyString())).thenReturn(requestSpec);
+    when(requestSpec.call()).thenReturn(callResponse);
+    when(callResponse.chatResponse()).thenReturn(chatResponse);
+    when(chatResponse.getResult()).thenReturn(generation);
+    when(generation.getOutput()).thenReturn(new AssistantMessage("回复"));
+
+    VoiceInterviewSessionEntity session = VoiceInterviewSessionEntity.builder()
+        .jobDirection("SALES_BD")
+        .build();
+    service.chat("回答", session, List.of());
+
+    ArgumentCaptor<String> directionCaptor = ArgumentCaptor.forClass(String.class);
+    verify(promptService).generateSystemPromptWithContext(anyString(), directionCaptor.capture(), isNull());
+    assertThat(directionCaptor.getValue()).isEqualTo("SALES_BD");
   }
 }

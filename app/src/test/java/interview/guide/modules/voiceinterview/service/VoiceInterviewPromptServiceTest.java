@@ -1,24 +1,43 @@
 package interview.guide.modules.voiceinterview.service;
 
-import org.junit.jupiter.api.Disabled;
+import interview.guide.common.ai.PromptSanitizer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * 占位类：原测试依赖已被移除的 {@code VoiceInterviewPromptService.RolePrompt} 内部类
- * 与 {@code getRolePrompt(String)} 方法。自 commit {@code e6bebe7}（"refactor: 语音面试接入
- * SkillsTool + 全局代码清理"）起 {@link VoiceInterviewPromptService} 已改为只暴露
- * {@code generateSystemPromptWithContext(skillId, resumeText)}，历史用例不再适用。
- *
- * <p>保留文件路径，后续配合 SkillsTool 加载能力重写一份围绕 {@code generateSystemPromptWithContext}
- * 的新测试时直接覆盖此文件。</p>
- */
-@Disabled("Pending rewrite: RolePrompt / getRolePrompt removed in commit e6bebe7")
-@DisplayName("VoiceInterviewPromptService 测试（待重写）")
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+@DisplayName("语音面试系统提示词组装")
 class VoiceInterviewPromptServiceTest {
 
-    @Test
-    void placeholder() {
-        // 空占位，不写断言；整类 @Disabled。
-    }
+  private final PromptSanitizer promptSanitizer = mock(PromptSanitizer.class);
+
+  @Test
+  @DisplayName("系统提示词包含技能加载指令、输出约束与求职方向策略")
+  void includesSkillConstraintsAndJobDirectionStrategy() {
+    VoiceJobDirectionPromptRegistry registry = mock(VoiceJobDirectionPromptRegistry.class);
+    when(registry.strategy("SALES_BD")).thenReturn("【求职方向：销售 / BD】\n- 以行为面试为主");
+    VoiceInterviewPromptService service = new VoiceInterviewPromptService(promptSanitizer, registry);
+
+    String prompt = service.generateSystemPromptWithContext("java-backend", "SALES_BD", null);
+
+    assertThat(prompt).contains("java-backend");
+    assertThat(prompt).contains("【语音面试输出约束】");
+    assertThat(prompt).contains("【求职方向：销售 / BD】");
+    assertThat(prompt).contains("以行为面试为主");
+  }
+
+  @Test
+  @DisplayName("空方向同样交由注册表解析（默认方向策略仍会注入）")
+  void blankDirectionDefersToRegistry() {
+    VoiceJobDirectionPromptRegistry registry = mock(VoiceJobDirectionPromptRegistry.class);
+    when(registry.strategy(null)).thenReturn("【求职方向：技术类】");
+    VoiceInterviewPromptService service = new VoiceInterviewPromptService(promptSanitizer, registry);
+
+    String prompt = service.generateSystemPromptWithContext(null, null, null);
+
+    assertThat(prompt).contains("【求职方向：技术类】");
+    assertThat(prompt).doesNotContain("java-backend");
+  }
 }

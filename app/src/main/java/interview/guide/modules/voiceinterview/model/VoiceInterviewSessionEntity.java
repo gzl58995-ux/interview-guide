@@ -39,6 +39,10 @@ public class VoiceInterviewSessionEntity {
     @Column(name = "custom_jd_text", columnDefinition = "TEXT")
     private String customJdText;
 
+    @Column(name = "job_direction", nullable = false, length = 64)
+    @Builder.Default
+    private String jobDirection = "TECH";
+
     @Column(name = "resume_id")
     private Long resumeId;
 

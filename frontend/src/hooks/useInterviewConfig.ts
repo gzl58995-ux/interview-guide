@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { skillApi, type SkillDTO, type CategoryDTO } from '../api/skill';
 import { historyApi, type ResumeListItem } from '../api/history';
+import type { JobDirection } from '../types/resume';
 import { getSkillIcon } from '../utils/skillIcons';
 
 export type InterviewMode = 'text' | 'voice';
@@ -51,6 +52,7 @@ export function useInterviewConfig(options?: {
   const [loadingSkills, setLoadingSkills] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [resumeId, setResumeId] = useState<number | undefined>(undefined);
+  const [jobDirection, setJobDirection] = useState<JobDirection>('TECH');
   const [resumes, setResumes] = useState<ResumeListItem[]>([]);
   const [questionCount, setQuestionCount] = useState<number>(6);
   const [plannedDuration, setPlannedDuration] = useState(30);
@@ -85,6 +87,14 @@ export function useInterviewConfig(options?: {
       setResumes(data);
     } catch (err) {
       console.error('Failed to load resumes:', err);
+    }
+  };
+
+  const selectResume = (id?: number) => {
+    setResumeId(id);
+    const resume = id != null ? resumes.find(r => r.id === id) : undefined;
+    if (resume?.jobDirection) {
+      setJobDirection(resume.jobDirection);
     }
   };
 
@@ -127,6 +137,7 @@ export function useInterviewConfig(options?: {
     loadingSkills,
     showMore, setShowMore,
     resumeId, setResumeId,
+    jobDirection, setJobDirection,
     resumes,
     questionCount, setQuestionCount,
     plannedDuration, setPlannedDuration,
@@ -141,6 +152,7 @@ export function useInterviewConfig(options?: {
     // Actions
     loadSkills,
     loadResumes,
+    selectResume,
     handleParseJd,
     // Helpers
     getSkillIcon,

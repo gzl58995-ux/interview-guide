@@ -1,4 +1,5 @@
 import { request } from './request';
+import type { JobDirection } from '../types/resume';
 
 export type AnalyzeStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 export type EvaluateStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
@@ -15,6 +16,7 @@ export interface ResumeListItem {
   analyzeStatus?: AnalyzeStatus;
   analyzeError?: string;
   storageUrl?: string;
+  jobDirection?: JobDirection;
 }
 
 export interface ResumeStats {

@@ -9,6 +9,7 @@ export interface CreateSessionRequest {
   skillId: string;
   difficulty?: string;
   customJdText?: string;
+  jobDirection?: string;
   resumeId?: number;
   introEnabled?: boolean;
   techEnabled?: boolean;

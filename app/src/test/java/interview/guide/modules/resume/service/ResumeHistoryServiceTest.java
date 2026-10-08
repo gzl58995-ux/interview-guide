@@ -8,6 +8,7 @@ import interview.guide.infrastructure.mapper.InterviewMapper;
 import interview.guide.infrastructure.mapper.ResumeMapper;
 import interview.guide.modules.interview.service.InterviewPersistenceService;
 import interview.guide.modules.resume.model.ResumeEntity;
+import interview.guide.modules.resume.model.ResumeListItemDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
+
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -72,6 +76,21 @@ class ResumeHistoryServiceTest {
                 ex -> assertThat(ex.getCode()).isEqualTo(ErrorCode.STORAGE_DOWNLOAD_FAILED.getCode()));
 
         verifyNoInteractions(fileStorageService);
+    }
+
+    @Test
+    @DisplayName("简历列表返回求职方向用于语音面试预填")
+    void listIncludesJobDirection() {
+        ResumeEntity resume = resume("resumes/2026/10/08/abc_resume.pdf", "application/pdf");
+        resume.setJobDirection("SALES_BD");
+        when(resumePersistenceService.findAllResumes()).thenReturn(List.of(resume));
+        when(resumePersistenceService.getLatestAnalysis(1L)).thenReturn(Optional.empty());
+        when(interviewPersistenceService.findByResumeId(1L)).thenReturn(List.of());
+
+        List<ResumeListItemDTO> result = service.getAllResumes();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).jobDirection()).isEqualTo("SALES_BD");
     }
 
     private ResumeEntity resume(String storageKey, String contentType) {

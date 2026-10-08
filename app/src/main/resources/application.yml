@@ -272,6 +272,16 @@ app:
 
   # Voice interview configuration
   voice-interview:
+    # 求职方向提问策略路由：新增方向 = 注册一条路由 + 新增 prompts/voice-interview/job-direction 下策略文件
+    default-job-direction: ${APP_VOICE_INTERVIEW_DEFAULT_JOB_DIRECTION:TECH}
+    job-direction-routes:
+      TECH:
+        prompt-path: classpath:prompts/voice-interview/job-direction/tech.st
+      PROCUREMENT_SUPPLY_CHAIN:
+        prompt-path: classpath:prompts/voice-interview/job-direction/procurement-supply-chain.st
+      SALES_BD:
+        prompt-path: classpath:prompts/voice-interview/job-direction/sales-bd.st
+
     # 上下文压缩：enabled=false 是唯一关闭方式（仅本地排查用）；
     # enabled=true 时无论何种模式都执行字符硬预算（摘要 + 近期历史 <= max-history-chars）
     context-compression:

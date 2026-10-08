@@ -71,6 +71,7 @@ public enum ErrorCode {
     VOICE_SESSION_NOT_FOUND(10001, "语音面试会话不存在"),
     VOICE_EVALUATION_FAILED(10004, "语音面试评估失败"),
     VOICE_EVALUATION_NOT_FOUND(10006, "语音面试评估结果不存在"),
+    VOICE_JOB_DIRECTION_UNSUPPORTED(10007, "不支持的求职方向"),
 
     // ========== Provider管理模块错误 11xxx ==========
     PROVIDER_NOT_FOUND(11001, "LLM Provider 不存在"),

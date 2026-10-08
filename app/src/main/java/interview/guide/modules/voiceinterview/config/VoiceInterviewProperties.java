@@ -29,6 +29,14 @@ public class VoiceInterviewProperties {
     private OpeningConfig opening = new OpeningConfig();
     @Valid
     private ContextCompressionConfig contextCompression = new ContextCompressionConfig();
+    /**
+     * 默认求职方向（未指定且无简历方向时使用）。
+     */
+    private String defaultJobDirection = "TECH";
+    /**
+     * 求职方向提问策略路由：方向码 -> 策略提示词文件。
+     */
+    private Map<String, JobDirectionRoute> jobDirectionRoutes = new LinkedHashMap<>();
 
     /**
      * 语音面试单轮面试官回复最大字符数（超出会截断到句子边界）。
@@ -224,6 +232,11 @@ public class VoiceInterviewProperties {
         public boolean isSummaryBudgetPositive() {
             return mode != Mode.SUMMARY || maxSummaryChars > 0;
         }
+    }
+
+    @Data
+    public static class JobDirectionRoute {
+        private String promptPath;
     }
 
     public enum Mode {

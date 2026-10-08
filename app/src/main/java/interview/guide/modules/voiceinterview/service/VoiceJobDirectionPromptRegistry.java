@@ -62,11 +62,17 @@ public class VoiceJobDirectionPromptRegistry {
     }
 
     private static String loadStrategy(ResourceLoader resourceLoader, String path, String direction) {
+        String content;
         try {
-            return resourceLoader.getResource(path).getContentAsString(StandardCharsets.UTF_8);
+            content = resourceLoader.getResource(path).getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException | RuntimeException e) {
             throw new IllegalStateException(
                 "加载语音面试求职方向策略失败: direction=" + direction + ", path=" + path, e);
         }
+        if (content.isBlank()) {
+            throw new IllegalStateException(
+                "语音面试求职方向策略内容为空: direction=" + direction + ", path=" + path);
+        }
+        return content;
     }
 }

@@ -95,6 +95,18 @@ class VoiceJobDirectionPromptRegistryTest {
     }
 
     @Test
+    @DisplayName("策略文件为空白时启动失败")
+    void failsFastWhenStrategyBlank() {
+      VoiceInterviewProperties properties = properties(Map.of(
+          "TECH", "classpath:prompts/voice-interview/job-direction/empty.st"));
+
+      assertThatThrownBy(() -> new VoiceJobDirectionPromptRegistry(properties, new DefaultResourceLoader()))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("TECH")
+          .hasMessageContaining("empty.st");
+    }
+
+    @Test
     @DisplayName("默认方向没有策略时启动失败")
     void failsFastWhenDefaultDirectionMissing() {
       VoiceInterviewProperties properties = properties(Map.of("SALES_BD", SALES));

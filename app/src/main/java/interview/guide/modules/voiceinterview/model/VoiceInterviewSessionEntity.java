@@ -109,14 +109,22 @@ public class VoiceInterviewSessionEntity {
 
     @PreUpdate
     protected void onUpdate() {
+        normalizeJobDirection();
         this.updatedAt = LocalDateTime.now();
     }
 
     @PrePersist
     protected void onCreate() {
+        normalizeJobDirection();
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         this.startTime = LocalDateTime.now();
+    }
+
+    private void normalizeJobDirection() {
+        if (this.jobDirection == null || this.jobDirection.isBlank()) {
+            this.jobDirection = "TECH";
+        }
     }
 
     public enum InterviewPhase {

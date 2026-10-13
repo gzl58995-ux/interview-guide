@@ -24,7 +24,7 @@ services:
       # 初始化脚本：容器首次启动时会自动执行 /docker-entrypoint-initdb.d/ 下的 .sql 文件
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     # 健康检查：
     # 后端服务(app)需要等待数据库完全启动并准备好连接后才能启动。
     # 这里通过 pg_isready 命令检测数据库状态。
@@ -48,7 +48,7 @@ services:
     image: redis:7
     container_name: interview-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -78,8 +78,8 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -146,11 +146,11 @@ services:
       POSTGRES_DB: interview_guide
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      
+
       # === Redis 连接 ===
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      
+
       # === 对象存储配置 ===
       # 注意：后端在容器内访问 MinIO，使用 http://minio:9000
       APP_STORAGE_ENDPOINT: http://minio:9000
@@ -158,18 +158,26 @@ services:
       APP_STORAGE_SECRET_KEY: minioadmin
       APP_STORAGE_BUCKET: interview-guide
       APP_STORAGE_REGION: us-east-1
-      
+
       # === AI 模型配置 (必须配置) ===
       # 这里的变量值来自宿主机的环境变量或 .env 文件
       AI_BAILIAN_API_KEY: ${AI_BAILIAN_API_KEY}
       AI_MODEL: ${AI_MODEL:-qwen3.5-flash}
       APP_AI_CONFIG_ENCRYPTION_KEY: ${APP_AI_CONFIG_ENCRYPTION_KEY}
 
+      # === 认证配置 (必须配置) ===
+      # JWT 签名密钥，至少 32 字节，缺失时后端启动失败
+      APP_AUTH_JWT_SECRET: ${APP_AUTH_JWT_SECRET:?Set APP_AUTH_JWT_SECRET in .env}
+
+      # === 默认聊天 Provider (DeepSeek) ===
+      PROVIDER_DEEPSEEK_API_KEY: ${PROVIDER_DEEPSEEK_API_KEY:-}
+      PROVIDER_DEEPSEEK_MODEL: ${PROVIDER_DEEPSEEK_MODEL:-deepseek-flash}
+
       # === 面试参数配置 ===
       APP_INTERVIEW_FOLLOW_UP_COUNT: ${APP_INTERVIEW_FOLLOW_UP_COUNT:-1}
       APP_INTERVIEW_EVALUATION_BATCH_SIZE: ${APP_INTERVIEW_EVALUATION_BATCH_SIZE:-8}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:18080:8080"
 
   # =========================================
   # 6. 前端应用服务 (Vue/React + Nginx)
@@ -184,7 +192,7 @@ services:
     depends_on:
       - app
     ports:
-      - "80:80"
+      - "127.0.0.1:8081:80"
 
 # =========================================
 # 定义 Docker 卷 (Volumes)

@@ -56,7 +56,7 @@ services:
       timeout: 3s
       retries: 5
 
-# 首次启动后，浏览器访问 http://localhost:9001
+# 首次启动后，浏览器访问 http://localhost:9003（控制台映射端口）
 # 使用 ${RUSTFS_ACCESS_KEY} / ${RUSTFS_SECRET_KEY} 登录，手动创建名为 interview-guide 的 bucket
 
 volumes:

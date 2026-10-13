@@ -14,50 +14,54 @@
 
 ---
 
+## 项目来源
+
+本项目基于开源项目 [Snailclimb/interview-guide](https://github.com/Snailclimb/interview-guide)（作者 [Guide](https://github.com/Snailclimb)，JavaGuide 作者）二次开发，原项目与本项目均遵循 AGPL-3.0 开源协议。
+
+当前仓库为个人二次开发版本：[gzl58995-ux/interview-guide](https://github.com/gzl58995-ux/interview-guide)。在原项目能力（简历分析、模拟面试、语音面试、知识库、面试安排等）的基础上，本版本新增了**用户体系与数据隔离、管理端、用户反馈、求职方向提示词路由**等能力，具体差异见「功能特性」；原项目著作权归原作者所有，特此致谢。
+
 ## 项目介绍
 
 InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音）、面试安排、知识库管理、知识库题库面试和多模型配置的智能面试辅助平台。系统利用大语言模型（LLM）、向量数据库、Redis Stream 异步任务和实时语音技术，为求职者、HR 和培训机构提供智能化的简历评估、面试练习、知识库问答和面试日程管理能力。
 
+本版本在此之上增加了多用户注册登录与数据隔离、管理员平台级数据管理（简历 / 面试记录 / 用户反馈）以及按求职方向动态路由的提示词体系。
+
 ## 系统架构
 
-![系统架构图](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/interview-guide-architecture-diagram.png)
+前后端分离：React 前端通过 REST API / WebSocket 与 Spring Boot 后端交互；后端统一采用 `Controller -> Service -> Repository` 分层，登录态由 JWT 承载，业务数据按用户隔离。简历分析、知识库向量化、题目生成、评估报告等耗时任务通过 Redis Stream 异步执行，知识库向量存于 PostgreSQL + pgvector，原始文件存于 S3 兼容对象存储。
 
-## 配套教程
-
-本项目承诺**完整功能免费开源**，也不会做所谓的 Pro 版或“付费解锁核心功能”之类的设计。
-
-如果你想学习这个项目，或者希望把它作为个人项目经历 / 毕设选题，我也整理了一套相对细致的教程：从基础设施搭建、核心业务实现，到最后如何在面试中讲清楚思路与亮点，尽量把容易卡住的地方讲透。
-
-如果你确实需要更系统的辅导，可以点这里了解详情（**教程为付费内容**，主要是想覆盖一些时间成本，望理解，感谢支持）：[《SpringAI 智能面试平台+RAG 知识库》](https://javaguide.cn/zhuanlan/interview-guide.html)。
+<!-- TODO: 补充系统架构图 -->
 
 ## 技术栈
 
 ### 后端技术
 
-| 技术                  | 版本  | 说明                          |
-| --------------------- | ----- | ----------------------------- |
-| Spring Boot           | 4.1.0 | 应用框架                      |
-| Java                  | 25    | 开发语言（虚拟线程）          |
-| Spring AI             | 2.0.0 | AI 集成框架、OpenAI 兼容模型接入 |
-| Spring AI Agent Utils | 0.10.0 | Skill 资源加载、Advisor 能力扩展 |
-| PostgreSQL + pgvector | 14+   | 关系数据库 + 向量存储（Compose 默认 PG16） |
-| Redis + Redisson      | 6+ / 4.0.0 | 缓存 + 消息队列（Stream） |
-| Apache Tika           | 2.9.2 | 文档解析                      |
-| iText 8               | 8.0.5 | PDF 导出                      |
-| MapStruct             | 1.6.3 | 对象映射                      |
-| SpringDoc OpenAPI     | 3.0.2 | API 接口文档                  |
-| DashScope SDK         | 2.22.7 | 语音识别/合成（Qwen3 ASR/TTS）|
-| AWS S3 SDK            | 2.29.51 | S3 兼容对象存储（MinIO/RustFS）|
-| WebSocket             | -     | 语音面试实时双向通信          |
-| Gradle                | 9.6.1 | 构建工具                      |
+| 技术                   | 版本       | 说明                          |
+| ---------------------- | ---------- | ----------------------------- |
+| Spring Boot            | 4.1.0      | 应用框架                      |
+| Java                   | 25         | 开发语言（虚拟线程）          |
+| Spring AI              | 2.0.0      | AI 集成框架、OpenAI 兼容模型接入 |
+| Spring AI Agent Utils  | 0.10.0     | Skill 资源加载、Advisor 能力扩展 |
+| JJWT                   | 0.12.6     | JWT 登录态签发与校验          |
+| Spring Security Crypto | 随 Boot 版本 | BCrypt 密码哈希（未引入完整 Security 过滤器链） |
+| PostgreSQL + pgvector  | 14+        | 关系数据库 + 向量存储（Compose 默认 PG16） |
+| Redis + Redisson       | 6+ / 4.0.0 | 缓存 + 消息队列（Stream） |
+| Apache Tika            | 2.9.2      | 文档解析                      |
+| iText 8                | 8.0.5      | PDF 导出                      |
+| MapStruct              | 1.6.3      | 对象映射                      |
+| SpringDoc OpenAPI      | 3.0.2      | API 接口文档                  |
+| DashScope SDK          | 2.22.7     | 语音识别/合成（Qwen3 ASR/TTS）|
+| AWS S3 SDK             | 2.29.51    | S3 兼容对象存储（MinIO/RustFS）|
+| WebSocket              | -          | 语音面试实时双向通信          |
+| Gradle                 | 9.6.1      | 构建工具                      |
 
 技术选型常见问题解答：
 
 1. 数据存储为什么选择 PostgreSQL + pgvector？PG 的向量数据存储功能够用了，精简架构，不想引入太多组件。
 2. 为什么引入 Redis？
    - Redis 替代 `ConcurrentHashMap` 实现面试会话的缓存。
-   - 基于 Redis Stream 实现简历分析、知识库向量化等场景的异步（还能解耦，分析和向量化可以使用其他编程语言来做）。不使用 [Kafka](https://javaguide.cn/high-performance/message-queue/kafka-questions-01.html) 这类成熟的消息队列，也是不想引入太多组件。
-3. 构建工具为什么选择 Gradle？个人更喜欢用 Gradle，也写过相关的文章：[Gradle核心概念总结](https://javaguide.cn/tools/gradle/gradle-core-concepts.html)。
+   - 基于 Redis Stream 实现简历分析、知识库向量化等场景的异步（还能解耦，分析和向量化可以使用其他编程语言来做）。不引入 Kafka 这类独立消息队列，同样是为了精简组件。
+3. 构建工具为什么选择 Gradle？相比 Maven，Gradle 构建脚本更灵活，增量构建与缓存体验更好。
 
 ### 前端技术
 
@@ -77,12 +81,40 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 
 ## 功能特性
 
+### 用户系统与数据隔离（本版本新增）
+
+- **注册与登录**：用户名 3-32 位字母/数字/下划线，密码 6-64 位，BCrypt 哈希存储，注册成功即登录。
+- **JWT 登录态**：HS256 签名，默认 7 天有效期（`APP_AUTH_JWT_EXPIRE_MINUTES` 可调）；登录态失效（401）时前端自动清理本地会话并跳转登录页。
+- **接口统一鉴权**：后端 `/api/**` 默认全部要求登录，仅注册、登录接口放行。
+- **数据按用户隔离**：简历、模拟面试、知识库、RAG 会话、面试日程、语音面试会话均按归属用户隔离，用户之间互不可见；简历/知识库文件去重与面试幂等同样按用户维度处理。
+- **前端登录门禁**：前端设置 `VITE_AUTH_REQUIRED=true` 后，未登录访问业务页面会自动跳转登录页。
+
+### 管理端（本版本新增）
+
+- **管理员身份**：由 `users.is_admin` 控制，注册接口一律创建普通用户，管理员由运维手工提权（见「快速开始」）。
+- **简历管理**：全平台简历分页列表，支持关键词（文件名 / 用户名）、分析状态、归属用户筛选，支持上传时间 / 访问量 / 文件大小排序；同时展示简历总数、涉及用户数、分析中数量、产生面试数等平台统计。
+- **平台级数据查看与导出**：管理员可查看任意用户的简历详情、下载原始简历文件、导出简历分析 PDF，也可查看任意用户的模拟面试记录详情并导出面试报告 PDF。
+- **用户反馈管理**：查看全部反馈并按状态 / 分类筛选，标记已处理 / 回退待处理，删除。
+- **权限收口**：系统设置（多模型 Provider 管理）等 `/api/llm-provider/**` 与 `/api/admin/**` 接口仅管理员可访问。
+
+### 用户反馈（本版本新增）
+
+- **随手反馈**：侧边栏底部入口弹窗提交，分类为功能异常 / 改进建议 / 使用体验 / 其他，正文 5-1000 字，自动附带当前页面路径。
+- **防滥用**：仅登录用户可提交，后端按用户限流 5 次/分钟。
+- **处理闭环**：管理员在「管理员页面 → 用户反馈」中筛选、标记已处理 / 回退待处理、删除。
+
+### 求职方向提示词路由（本版本新增）
+
+- **简历解析按方向路由**：上传简历时选择求职方向（技术类 / 采购供应链 / 销售 BD），AI 分析按方向动态加载 system / user 提示词；新增方向只需新增一组提示词文件并在 `application.yml` 注册一条路由，无需改动 Java 代码。
+- **语音面试方向策略**：语音面试按方向叠加考察重点与提问风格（在 skillId 面试官人设之上追加一层方向策略），方向随会话落库；取值优先级为「请求显式选择 → 所选简历的方向 → 默认技术类」。
+
 ### 简历管理模块
 
 - **多格式解析**：支持 PDF、DOCX、DOC、TXT 等多种简历格式。
 - **异步处理流**：基于 Redis Stream 实现异步简历分析，支持实时查看处理进度（待分析/分析中/已完成/失败）。
 - **稳定性保障**：内置分析失败自动重试机制（最多 3 次）与基于内容哈希的重复检测。
 - **分析报告导出**：支持将 AI 分析结果一键导出为结构化的 PDF 简历分析报告。
+- **求职方向**：上传时可为每份简历选择求职方向，解析提示词按方向路由，列表与详情展示方向信息。
 
 ### 模拟面试模块
 
@@ -110,6 +142,7 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 - **回声防护 + 手动提交**：避免 AI 语音被误录入
 - **多轮上下文记忆 + 暂停/恢复**：超时自动暂停
 - **Micrometer 埋点**：TTS/ASR 延迟、会话时长等指标
+- **求职方向策略**（本版本新增）：按方向叠加考察重点与提问风格，方向随会话落库，取值为「请求 → 简历 → 默认技术类」
 
 > **已知问题**：端到端延迟偏高（服务端音频中转）、无耳机时回声泄漏、TTS 音色单一、弱网音频断续。后续计划探索 WebRTC、客户端 VAD 降噪、端到端语音模型等方案。
 
@@ -133,9 +166,11 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 ### 多模型与系统设置模块
 
 - **多 Provider 管理**：内置 DashScope、LM Studio、Kimi、DeepSeek、GLM 等 OpenAI 兼容 Provider 配置。
-- **默认模型切换**：支持在设置页切换默认聊天模型和默认向量模型，不需要频繁修改源码配置。
+- **默认 Provider 为 DeepSeek**：默认聊天模型走 DeepSeek，也支持在设置页切换默认聊天模型和默认向量模型，不需要频繁修改源码配置。
+- **DeepSeek 结构化输出适配**：DeepSeek 不支持 `json_schema` response_format，结构化输出默认关闭 schema 校验，走本地 BeanOutputConverter 解析路径。
 - **语音服务配置**：ASR/TTS 配置可视化管理，支持语音服务连通性测试。
 - **配置安全落盘**：运行时配置默认写入用户目录 `~/.interview-guide/`，支持 API Key 加密配置。
+- **仅管理员可访问**：设置页与 Provider 管理接口需要管理员权限。
 
 ### TODO
 
@@ -158,64 +193,18 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 - [x] RAG 聊天会话管理 + 虚拟列表优化
 - [x] 可重复注解 API 限流（Global/IP/User 维度）
 - [x] 打通知识库题库与模拟面试（异步出题、严格容量校验、统一评估与记录）
+- [x] 用户注册 / 登录与 JWT 登录态
+- [x] 业务数据按用户隔离（简历 / 面试 / 知识库 / 日程 / 语音）
+- [x] 管理端（平台级简历管理、面试记录导出）
+- [x] 用户反馈收集与处理
+- [x] 简历解析与语音面试的求职方向提示词路由
 - [ ] 语音面试接入 WebRTC 降低延迟
 - [ ] 语音面试支持更多 TTS 音色
 
 
 ## 效果展示
 
-### 简历与面试
-
-面试中心：
-
-![面试中心](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-interview-hub.png)
-
-Skill 出题 + JD 解析：
-
-![Skill 出题 + JD 解析](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-skill-jd-parse.png)
-
-简历库：
-
-![简历库](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-resume-history.png)
-
-简历上传分析：
-
-![简历上传分析](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-resume-upload-analysis.png)
-
-简历分析详情：
-
-![简历分析详情](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-resume-analysis-detail.png)
-
-面试记录：
-
-![面试记录](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-interview-history.png)
-
-面试详情：
-
-![面试详情](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-interview-detail.png)
-
-模拟面试：
-
-![模拟面试](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-mock-interview.png)
-
-面试安排
-
-![面试安排](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-interview-schedule-list.png)
-
-多模型切换 + 语音服务设置：
-
-![管理聊天模型、向量模型和模块配置](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/llm-settings.png)
-
-
-### 知识库
-
-知识库管理：
-
-![知识库管理](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-knowledge-base-management.png)
-
-问答助手：
-
-![问答助手](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/page-qa-assistant.png)
+<!-- TODO: 前端页面截图待补充（建议：登录/注册、简历上传分析、面试中心、模拟面试、语音面试、管理端、用户反馈），截图存放到 docs/images/ 后在此引用 -->
 
 ## 项目结构
 
@@ -229,16 +218,20 @@ interview-guide/
 │   │   │   ├── annotation/           # @RateLimit 可重复限流注解
 │   │   │   ├── aspect/               # RateLimitAspect + Redis Lua 限流
 │   │   │   ├── async/                # Redis Stream 生产者/消费者模板
-│   │   │   ├── config/               # CORS、S3、OpenAPI、Jackson 等配置
+│   │   │   ├── auth/                 # JWT、登录/管理员拦截器、UserContext
+│   │   │   ├── config/               # CORS、S3、OpenAPI、认证拦截器注册等配置
 │   │   │   ├── evaluation/           # 文字/语音共用的统一评估引擎
 │   │   │   ├── exception/            # 业务异常与全局异常处理
-│   │   │   └── result/               # 统一响应 Result<T>
+│   │   │   └── result/               # 统一响应 Result<T> / PageResult
 │   │   ├── infrastructure/           # 基础设施
 │   │   │   ├── export/               # PDF 导出
 │   │   │   ├── file/                 # 文件解析、校验、清洗、S3 存储
 │   │   │   ├── mapper/               # MapStruct 映射器
 │   │   │   └── redis/                # RedisService、面试会话缓存
 │   │   └── modules/                  # 业务模块
+│   │       ├── admin/                # 管理端（平台级简历/面试记录）
+│   │       ├── auth/                 # 注册、登录、用户
+│   │       ├── feedback/             # 用户反馈
 │   │       ├── interview/            # 模拟面试模块
 │   │       ├── interviewschedule/    # 面试安排模块
 │   │       ├── knowledgebase/        # 知识库模块
@@ -247,7 +240,8 @@ interview-guide/
 │   │       └── voiceinterview/       # 语音面试模块
 │   └── src/main/resources/
 │       ├── application.yml           # 应用配置
-│       ├── prompts/                  # AI 提示词模板（StringTemplate）
+│       ├── db/migration/             # Flyway 数据库迁移脚本
+│       ├── prompts/                  # AI 提示词模板（含按求职方向路由的模板）
 │       ├── scripts/                  # Redis Lua 脚本
 │       ├── skills/                   # 面试 Skill 定义和参考题库
 │       └── voice-interview-opening.yml # 语音面试开场白配置
@@ -265,7 +259,7 @@ interview-guide/
 │
 ├── docker-compose.yml                # 完整部署：前端 + 后端 + PostgreSQL + Redis + MinIO
 ├── docker-compose.dev.yml            # 本地开发依赖：PostgreSQL + Redis + RustFS
-├── docs/                             # 架构设计与改造记录
+├── docs/                             # 数据库说明、语音面试架构与改造记录
 ├── .env.example                      # 环境变量示例
 └── README.md
 ```
@@ -286,32 +280,36 @@ interview-guide/
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/Snailclimb/interview-guide.git
+git clone https://github.com/gzl58995-ux/interview-guide.git
 cd interview-guide
 ```
 
 ### 2. 配置环境变量
 
-推荐复制 `.env.example` 为 `.env`，后端 `bootRun` 会自动读取根目录 `.env`。最少需要填写 `AI_BAILIAN_API_KEY`，用于 DashScope 文本模型、ASR 和 TTS：
+推荐复制 `.env.example` 为 `.env`，后端 `bootRun` 会自动读取根目录 `.env`。必填项：
+
+- `APP_AUTH_JWT_SECRET`：JWT 签名密钥，至少 32 字节，可用 `openssl rand -hex 32` 生成
+- `APP_AI_CONFIG_ENCRYPTION_KEY`：Provider API Key 加密密钥
+- 至少一个聊天模型 Key：默认聊天 Provider 为 DeepSeek，需填写 `PROVIDER_DEEPSEEK_API_KEY`
+- 语音面试还需要 `AI_BAILIAN_API_KEY`（DashScope，用于 ASR/TTS 与千问模型）
 
 ```bash
 cp .env.example .env
 
 # 编辑 .env
+# APP_AUTH_JWT_SECRET=your_random_secret
+# APP_AI_CONFIG_ENCRYPTION_KEY=your_random_secret
+# PROVIDER_DEEPSEEK_API_KEY=your_deepseek_api_key
 # AI_BAILIAN_API_KEY=your_dashscope_api_key
-# AI_MODEL=qwen3.5-flash
 ```
 
 如果你更习惯通过 shell 环境变量注入，也可以这样设置：
 
 ```bash
 # macOS / Linux（zsh）
-echo 'export AI_BAILIAN_API_KEY=your_api_key' >> ~/.zshrc
+echo 'export APP_AUTH_JWT_SECRET=your_random_secret' >> ~/.zshrc
+echo 'export PROVIDER_DEEPSEEK_API_KEY=your_api_key' >> ~/.zshrc
 source ~/.zshrc
-
-# Linux（bash）
-echo 'export AI_BAILIAN_API_KEY=your_api_key' >> ~/.bashrc
-source ~/.bashrc
 ```
 
 ### 3. 启动依赖服务（可选）
@@ -329,7 +327,20 @@ docker compose -f docker-compose.dev.yml down
 docker compose -f docker-compose.dev.yml down -v
 ```
 
-如果你之前已经启动过旧版本容器，拉取新代码后建议确认端口映射是否真的生效：
+注意：`docker-compose.dev.yml` 强制要求 `.env` 中配置 `POSTGRES_PASSWORD` 与 `RUSTFS_RPC_SECRET`，未配置会直接报错。
+
+启动后各依赖默认地址：
+
+| 服务          | 地址                                | 账号         | 密码         |
+| ------------- | ----------------------------------- | ------------ | ------------ |
+| PostgreSQL    | `localhost:${POSTGRES_PORT:-5432}`  | `postgres`   | `.env` 的 `POSTGRES_PASSWORD` |
+| Redis         | `localhost:${REDIS_PORT:-6379}`     | -            | -            |
+| RustFS API    | `localhost:9002`                    | -            | -            |
+| RustFS 控制台 | `localhost:9003`                    | `rustfsadmin`（可改 `RUSTFS_ACCESS_KEY`） | `rustfsadmin`（可改 `RUSTFS_SECRET_KEY`） |
+
+> **注意**：使用 `docker-compose.dev.yml` 时，`.env` 中 `APP_STORAGE_ENDPOINT` 应指向 RustFS API 的映射端口，即 `http://localhost:9002`；应用启动时会自动检查并创建 `interview-guide` Bucket。如果本地已有 MinIO 或其他 S3 兼容存储，也可以直接使用，在 `.env` 中修改 `APP_STORAGE_*` 配置即可。
+
+> 如果你之前已经启动过旧版本容器，拉取新代码后建议确认端口映射是否真的生效：
 
 ```bash
 docker ps --format '{{.Names}} {{.Ports}}'
@@ -347,16 +358,6 @@ interview-redis    0.0.0.0:6379->6379/tcp
 ```bash
 docker compose -f docker-compose.dev.yml up -d --force-recreate postgres redis
 ```
-
-启动后默认账号：
-
-| 服务         | 地址             | 账号            | 密码            |
-| ------------ | ---------------- | --------------- | --------------- |
-| PostgreSQL   | `localhost:5432` | `postgres`      | `123456`        |
-| Redis        | `localhost:6379` | -               | -               |
-| RustFS 控制台 | `localhost:9001` | `rustfsadmin`   | `rustfsadmin`   |
-
-> **注意**：应用启动时会自动检查并创建 `interview-guide` Bucket。使用 `docker-compose.dev.yml` + `:app:bootRun` 时，请确保 `.env` 中的 `APP_STORAGE_ACCESS_KEY` / `APP_STORAGE_SECRET_KEY` 与 RustFS 账号一致，例如都设为 `rustfsadmin`。如果本地已有 MinIO 或其他 S3 兼容存储，也可以直接使用，在 `.env` 中修改 `APP_STORAGE_*` 配置即可。
 
 > **IDEA Docker Debug 提示**：如果在 macOS 上使用 IntelliJ IDEA 的 Docker 调试方式启动后端，遇到 `mounts denied: The path /Applications/IntelliJ IDEA.app/Contents/lib is not shared from the host`，请在 Docker Desktop 的 `Settings -> Resources -> File Sharing` 中加入 `/Applications/IntelliJ IDEA.app/Contents/lib`（或整个 `/Applications/IntelliJ IDEA.app`）以及当前项目目录，然后重启 Docker/IDEA 后再运行。普通 `./gradlew :app:bootRun` 和 `docker compose` 启动不需要这个额外共享路径。
 
@@ -381,44 +382,61 @@ pnpm dev
 
 前端服务启动于 `http://localhost:5173`
 
+**初始化管理员：**
+
+打开前端页面注册账号即可使用（注册成功即登录）。管理端与设置页需要管理员权限，第一个账号注册后，手动提权：
+
+```sql
+-- 连接到 PostgreSQL 后执行
+UPDATE users SET is_admin = TRUE WHERE username = '你的用户名';
+```
+
+**开启前端强制登录（可选）：**
+
+后端对所有 `/api/**`（除注册/登录）强制鉴权，已登录用户登录态失效（接口返回 401）时，前端会自动清理会话并回到登录页。若希望未登录访问业务路由时直接跳转登录页，可在 `frontend/.env` 中设置：
+
+```bash
+VITE_AUTH_REQUIRED=true
+```
+
 
 ## Docker 快速部署
 
 本项目提供了完整的 Docker 支持，可以一键启动所有服务（前后端、数据库、中间件）。
 
-Docker Compose 编排了 6 个服务：PostgreSQL（pgvector）、Redis、MinIO（S3 兼容存储）、MinIO Bucket 初始化、Spring Boot 后端、React 前端（Nginx）。数据通过 Docker 命名卷持久化，`docker-compose down` 不会丢失数据。
+Docker Compose 编排了 6 个服务：PostgreSQL（pgvector）、Redis、MinIO（S3 兼容存储）、MinIO Bucket 初始化、Spring Boot 后端、React 前端（Nginx）。数据通过 Docker 命名卷持久化，`docker compose down` 不会丢失数据。
 
 ### 1. 前置准备
 
 - 安装 [Docker](https://www.docker.com/products/docker-desktop/) 和 Docker Compose
-- 申请阿里云百炼 API Key（用于 AI 对话功能，申请地址：<https://bailian.console.aliyun.com/>）
+- 申请阿里云百炼 API Key（用于语音面试 ASR/TTS 等功能，申请地址：<https://bailian.console.aliyun.com/>）
 
 ### 2. 快速启动
 
 在项目根目录下执行：
 
-`.env.example` 中的 PostgreSQL、Redis、MinIO 已与 `docker-compose.yml` 对齐（数据库用户 `postgres` / 密码 `password`，MinIO `minioadmin` / `minioadmin`）。复制为 `.env` 后主要填写 `AI_BAILIAN_API_KEY`；若你曾在旧版本中使用过不同的库密码或对象存储密钥，请同步修改 `.env`，必要时重建 Postgres 卷以免旧数据与密码不一致。
+`docker-compose.yml` 中的 PostgreSQL、Redis、MinIO 使用固定默认账号（数据库用户 `postgres` / 密码 `password`，MinIO `minioadmin` / `minioadmin`），容器内的对象存储地址固定指向 MinIO（`http://minio:9000`），`.env` 中的 `APP_STORAGE_*` 只在宿主机运行后端时生效。复制 `.env.example` 为 `.env` 后，填写以下必填项；若你曾在旧版本中使用过不同的库密码，请同步修改 `.env`，必要时重建 Postgres 卷以免旧数据与密码不一致。
 
 ```bash
 # 1. 复制环境变量配置文件
 cp .env.example .env
 
-# 2. 编辑 .env 文件，填入 AI 配置
-# vim .env
-# 必填：AI_BAILIAN_API_KEY=your_key_here
+# 2. 编辑 .env 文件，填入必要配置
+# 必填：APP_AUTH_JWT_SECRET=your_random_long_secret
 # 必填：APP_AI_CONFIG_ENCRYPTION_KEY=your_random_long_secret
-# 可选：AI_MODEL=qwen3.5-flash   # 默认值为 qwen3.5-flash
-# 也可以在设置页维护 DashScope、Kimi、DeepSeek、GLM、LM Studio 等 Provider
+# 必填：PROVIDER_DEEPSEEK_API_KEY=your_deepseek_api_key   # 默认聊天 Provider
+# 必填：AI_BAILIAN_API_KEY=your_dashscope_api_key         # 语音面试 ASR/TTS
+# 可选：AI_MODEL=qwen3.5-flash                            # DashScope 文本模型
 #
 # 面试参数配置（可选）：
 # APP_INTERVIEW_FOLLOW_UP_COUNT=1         # 每个主问题生成追问数量（默认 1）
 # APP_INTERVIEW_EVALUATION_BATCH_SIZE=8   # 回答评估分批大小（默认 8）
 
 # 3. 构建并启动所有服务
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
-> **仅启动依赖服务**：如果只想本地开发调试（用 `./gradlew :app:bootRun` 启动后端），可以只启动基础设施：`docker compose up -d postgres redis minio createbuckets`。将 `.env.example` 复制为 `.env` 并填写 `AI_BAILIAN_API_KEY` 即可，默认账号与 `docker-compose.yml` 一致；Bucket 会由初始化任务或应用启动检查自动创建。
+> **仅启动依赖服务**：如果只想本地开发调试（用 `./gradlew :app:bootRun` 启动后端），可以只启动基础设施：`docker compose up -d postgres redis minio createbuckets`。此时 `.env` 中 `APP_STORAGE_ENDPOINT` 使用 MinIO 的宿主机端口 `http://localhost:9000`；Bucket 会由初始化任务或应用启动检查自动创建。
 
 ### 3. 服务访问
 
@@ -426,31 +444,33 @@ docker-compose up -d --build
 
 | 服务             | 地址                                           | 默认账号     | 默认密码     | 说明                   |
 | ---------------- | ---------------------------------------------- | ------------ | ------------ | ---------------------- |
-| **前端应用**     | [http://localhost](http://localhost)           | -            | -            | 用户访问入口           |
-| **后端 API**     | [http://localhost:8080](http://localhost:8080) | -            | -            | RESTful API            |
-| **接口文档**     | [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) | - | - | SpringDoc/Swagger UI |
+| **前端应用**     | [http://localhost:8081](http://localhost:8081) | -            | -            | 用户访问入口           |
+| **后端 API**     | [http://localhost:18080](http://localhost:18080) | -          | -            | RESTful API            |
+| **接口文档**     | [http://localhost:18080/swagger-ui.html](http://localhost:18080/swagger-ui.html) | - | - | SpringDoc/Swagger UI |
 | **MinIO 控制台** | [http://localhost:9001](http://localhost:9001) | `minioadmin` | `minioadmin` | 对象存储管理           |
 | **MinIO API**    | `localhost:9000`                               | -            | -            | S3 兼容接口            |
 | **PostgreSQL**   | `localhost:5432`                               | `postgres`   | `password`   | 数据库 (包含 pgvector) |
 | **Redis**        | `localhost:6379`                               | -            | -            | 缓存与消息队列         |
 
+> 所有端口默认只绑定 `127.0.0.1`，仅本机可访问。如需局域网或公网访问，请自行调整 `docker-compose.yml` 中的端口映射并评估安全风险。
+
 ### 4. 常用运维命令
 
 ```bash
 # 查看服务状态
-docker-compose ps
+docker compose ps
 
 # 查看后端日志
-docker-compose logs -f app
+docker compose logs -f app
 
 # 拉取新代码后重新构建部署
-docker-compose up -d --build
+docker compose up -d --build
 
 # 停止并移除所有服务（数据保留在 Docker 卷中）
-docker-compose down
+docker compose down
 
 # 停止服务并清除数据卷（慎用，会删除数据库和文件）
-docker-compose down -v
+docker compose down -v
 
 # 清理无用镜像（构建产生的中间层）
 docker image prune -f
@@ -465,6 +485,24 @@ docker image prune -f
 | **培训机构**    | 提供面试培训服务，管理知识库资源       |
 
 ## 常见问题
+
+### Q: 如何成为管理员？
+
+注册接口一律创建普通用户，`users.is_admin` 默认为 `false`。注册账号后，连接数据库手动提权即可：
+
+```sql
+UPDATE users SET is_admin = TRUE WHERE username = '你的用户名';
+```
+
+提权后重新登录（或刷新当前用户信息）即可看到「管理员页面」，系统设置页也仅管理员可访问。
+
+### Q: 未登录或登录过期后接口返回 401？
+
+后端 `/api/**` 默认要求登录，登录态为 JWT（默认 7 天有效）。token 缺失、过期或非法时返回 401，前端会清理本地会话并跳转登录页，重新登录即可。如需调整有效期，修改 `.env` 中的 `APP_AUTH_JWT_EXPIRE_MINUTES`。
+
+### Q: 升级到本版本后，原有业务数据不见了？
+
+本版本接入用户体系时使用了 `V20260928__add_user_id_ownership.sql` 迁移：该迁移会清空既有业务表（保留 `users`）并为各表补充归属用户列，因为迁移设计时历史数据尚未上线、无需保留。如果你是从更早的版本升级且有需要保留的数据，请先在旧版本导出数据并手动迁移。
 
 ### Q: 数据库表创建失败/数据丢失
 
@@ -491,13 +529,12 @@ jpa:
 
 `vector_store` 表已由 Flyway 创建，Spring AI 不再自动建表。
 
-```java
+```yaml
 spring:
   ai:
     vectorstore:
       pgvector:
         initialize-schema: false
-
 ```
 
 建议保持为 false，避免应用启动时绕过 Flyway 修改数据库 schema。
@@ -506,7 +543,7 @@ spring:
 
 不需要。数据库 schema 已接入 Flyway，后端应用启动时会自动执行 `app/src/main/resources/db/migration/` 下的迁移，并记录到 `flyway_schema_history`。
 
-当前项目通过 `V1__init_schema.sql` 支持空库初始化，后续版本通过增量迁移演进；Hibernate `ddl-auto` 只做 `validate` 校验。测试环境使用 H2，默认关闭 Flyway。
+当前项目通过 `V1__init_schema.sql` 支持空库初始化，后续版本通过增量迁移演进（用户体系、求职方向、用户反馈等均为增量迁移）；Hibernate `ddl-auto` 只做 `validate` 校验。测试环境使用 H2，默认关闭 Flyway。
 
 ### Q: 启动时报 `Connection to localhost:5432 refused` 怎么办？
 
@@ -517,21 +554,21 @@ docker compose -f docker-compose.dev.yml up -d
 docker ps --format '{{.Names}} {{.Ports}}'
 ```
 
-`interview-postgres` 必须显示 `0.0.0.0:5432->5432/tcp`，`interview-redis` 必须显示 `0.0.0.0:6379->6379/tcp`。如果只显示 `5432/tcp` 或 `6379/tcp`，说明旧容器没有应用端口映射配置，重建容器即可：
+`interview-postgres` 必须显示 `0.0.0.0:5432->5432/tcp`，`interview-redis` 必须显示 `0.0.0.0:6379->6379/tcp`（端口可被 `.env` 中的 `POSTGRES_PORT` / `REDIS_PORT` 覆盖，请以实际映射为准）。如果只显示 `5432/tcp` 或 `6379/tcp`，说明旧容器没有应用端口映射配置，重建容器即可：
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d --force-recreate postgres redis
 ```
 
-如果你的本机 `5432` 或 `6379` 已被其他项目占用，可以修改 `.env` 中的 `POSTGRES_PORT` / `REDIS_PORT`，并同步调整 `docker-compose.dev.yml` 里的端口映射，确保应用配置和容器发布端口一致。
+如果你的本机 `5432` 或 `6379` 已被其他项目占用，可以修改 `.env` 中的 `POSTGRES_PORT` / `REDIS_PORT`，`docker-compose.dev.yml` 会自动使用对应端口；同时确认 `.env` 中 `POSTGRES_PORT` / `REDIS_PORT` 与后端连接配置一致。
 
 ### Q: 简历分析失败
 
-检查一下阿里云 DashScope API KEY 是否配置正确（申请地址：<https://bailian.console.aliyun.com/>）。
+默认聊天 Provider 为 DeepSeek，先检查 `.env` 中 `PROVIDER_DEEPSEEK_API_KEY` 是否配置正确；如果你想改用阿里云百炼（DashScope），需要配置 `AI_BAILIAN_API_KEY`（申请地址：<https://bailian.console.aliyun.com/>）并在设置页将其切换为默认 Provider。
 
 ### Q: 设置页新增/切换模型后不生效？
 
-运行时 Provider 配置默认写到 `~/.interview-guide/llm-providers.yml` 和 `~/.interview-guide/llm-providers.env`。可以在设置页点击测试连接，或调用 `/api/llm-provider/reload` 重新加载配置。Docker 部署时如果希望配置持久化，建议为该目录挂载卷。
+运行时 Provider 配置默认写到 `~/.interview-guide/llm-providers.yml` 和 `~/.interview-guide/llm-providers.env`。可以在设置页点击测试连接，或调用 `/api/llm-provider/reload` 重新加载配置（该接口需要管理员身份）。Docker 部署时如果希望配置持久化，建议为该目录挂载卷。
 
 ### Q: 语音面试提示“连接已断开，请刷新页面重试”？
 
@@ -544,7 +581,7 @@ docker compose -f docker-compose.dev.yml up -d --force-recreate postgres redis
 
 ### Q: 语音面试无法识别或没有声音？
 
-语音面试的 ASR/TTS 默认也使用 `AI_BAILIAN_API_KEY`。请检查浏览器麦克风权限、后端日志中的 DashScope WebSocket 连接状态，以及设置页里的 ASR/TTS 测试结果。无耳机时可能触发回声录入，建议先使用手动提交模式或佩戴耳机测试。
+语音面试的 ASR/TTS 使用 `AI_BAILIAN_API_KEY`。请检查浏览器麦克风权限、后端日志中的 DashScope WebSocket 连接状态，以及设置页里的 ASR/TTS 测试结果。无耳机时可能触发回声录入，建议先使用手动提交模式或佩戴耳机测试。
 
 ### Q: 简历分析一直显示"分析中"？
 
@@ -578,8 +615,10 @@ $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 
 ## 贡献
 
-欢迎提交 Issue 和 Pull Request！
+欢迎提交 Issue 和 Pull Request！本项目为个人二次开发版本，与原项目相关的通用问题也可以反馈到上游仓库 [Snailclimb/interview-guide](https://github.com/Snailclimb/interview-guide)。
 
 ## 许可证
 
 AGPL-3.0 License（只要通过网络提供服务，就必须向用户公开修改后的源码）
+
+本项目基于 [Snailclimb/interview-guide](https://github.com/Snailclimb/interview-guide) 二次开发，原项目版权归原作者 [Guide](https://github.com/Snailclimb) 所有。
